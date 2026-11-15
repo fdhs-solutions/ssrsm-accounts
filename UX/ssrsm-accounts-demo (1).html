@@ -79,7 +79,7 @@
       #app {
         flex: 1;
         display: flex;
-        flex-direction: column-reverse;
+        flex-direction: column;
         min-height: 0;
       }
       #main {
@@ -378,7 +378,7 @@
         ><input
           id="lp"
           type="password"
-          placeholder="admin123"
+          value="Admin123"
           autocomplete="current-password"
         />
         <div style="height: 14px"></div>
@@ -386,8 +386,8 @@
       </div>
     </div>
     <div id="app">
-      <nav id="nav"></nav>
       <div id="main"></div>
+      <nav id="nav"></nav>
     </div>
     <div id="toast"></div>
     <script>
@@ -502,7 +502,7 @@
         toast.t = setTimeout(() => (t.style.display = "none"), 2600);
       }
       function login() {
-        if ($("#lu").value === "admin" && $("#lp").value === "admin123") {
+        if ($("#lu").value === "admin" && $("#lp").value === "Admin123") {
           $("#login").style.display = "none";
         } else toast("Wrong username or password");
       }
@@ -568,7 +568,7 @@
 <div class="stat"><span>Outstanding</span><b class="acc">${inr(out)}</b></div>
 <div class="stat"><span>Sellable stock</span><b>${tot}</b><span>Damaged: ${sum(S.prods, (p) => p.d)}</span></div></div>
 <h2>Collection by mode</h2><div class="grid">${MODES.map((m) => `<div class="stat"><span>${m === "Auto" ? "Auto collection" : m}</span><b>${inr(c.by[m])}</b></div>`).join("")}</div>
-<div class="grid g2" style="margin-top:12px"><div class="card"><h2 style="margin-top:0">Stock by category</h2>${S.cats
+<div style="margin-top:12px"><div class="card"><h2 style="margin-top:0">Stock by category</h2>${S.cats
           .map((k) => {
             const n = sum(
               S.prods.filter((p) => p.c === k),
