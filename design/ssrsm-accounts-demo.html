@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>SSRSM Accounts</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;800&display=swap"
+    />
+    <style>
+      :root {
+        --bg: #eef2f5;
+        --card: #fff;
+        --ink: #14243a;
+        --mut: #5f6f82;
+        --line: #d5dde5;
+        --pri: #1f4e79;
+        --onpri: #fff;
+        --acc: #b7791f;
+        --ok: #0e7c66;
+        --bad: #c0392b;
+        --tint: #e3edf6;
+        box-sizing: border-box;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #0f1822;
+          --card: #172433;
+          --ink: #e6edf4;
+          --mut: #93a4b8;
+          --line: #2b3c50;
+          --pri: #6fa8dc;
+          --onpri: #0f1822;
+          --acc: #e6b450;
+          --ok: #3fc1a5;
+          --bad: #f0776a;
+          --tint: #1e3248;
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme="dark"] {
+        --bg: #0f1822;
+        --card: #172433;
+        --ink: #e6edf4;
+        --mut: #93a4b8;
+        --line: #2b3c50;
+        --pri: #6fa8dc;
+        --onpri: #0f1822;
+        --acc: #e6b450;
+        --ok: #3fc1a5;
+        --bad: #f0776a;
+        --tint: #1e3248;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.45 Mukta,
+          system-ui,
+          sans-serif;
+        display: flex;
+        flex-direction: column;
+      }
+      #app {
+        flex: 1;
+        display: flex;
+        flex-direction: column-reverse;
+        min-height: 0;
+      }
+      #main {
+        flex: 1;
+        overflow: auto;
+        padding: 14px;
+        max-width: 980px;
+        width: 100%;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 4px 0 12px;
+        font-weight: 800;
+      }
+      h2 {
+        font-size: 17px;
+        margin: 18px 0 8px;
+        font-weight: 600;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+      .grid {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 1fr 1fr;
+      }
+      @media (min-width: 768px) {
+        .grid {
+          grid-template-columns: repeat(4, 1fr);
+        }
+        .g2 {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .stat {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .stat b {
+        display: block;
+        font-size: 22px;
+        font-weight: 800;
+      }
+      .stat span {
+        color: var(--mut);
+        font-size: 14px;
+      }
+      .big {
+        background: var(--pri);
+        color: var(--onpri);
+        border-color: var(--pri);
+      }
+      .big span {
+        color: inherit;
+        opacity: 0.85;
+      }
+      label {
+        display: block;
+        font-size: 14px;
+        color: var(--mut);
+        margin: 10px 0 4px;
+      }
+      input,
+      select,
+      textarea,
+      button {
+        font: inherit;
+        color: inherit;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        min-height: 48px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--bg);
+      }
+      button {
+        min-height: 48px;
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--card);
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button.p {
+        background: var(--pri);
+        color: var(--onpri);
+        border-color: var(--pri);
+      }
+      button.s {
+        min-height: 38px;
+        padding: 4px 12px;
+        font-size: 14px;
+      }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 3px solid var(--acc);
+        outline-offset: 1px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+      }
+      .row > * {
+        flex: 1;
+      }
+      .row > .x {
+        flex: 0 0 48px;
+        padding: 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px;
+      }
+      th,
+      td {
+        padding: 8px 6px;
+        text-align: right;
+        border-bottom: 1px solid var(--line);
+      }
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+      th {
+        color: var(--mut);
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .wrap {
+        overflow-x: auto;
+      }
+      .tag {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 99px;
+        font-size: 13px;
+        background: var(--tint);
+      }
+      .ok {
+        color: var(--ok);
+      }
+      .bad {
+        color: var(--bad);
+      }
+      .acc {
+        color: var(--acc);
+      }
+      .chips {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        margin-bottom: 8px;
+      }
+      .chips button {
+        white-space: nowrap;
+        min-height: 40px;
+      }
+      .chips .on {
+        background: var(--pri);
+        color: var(--onpri);
+        border-color: var(--pri);
+      }
+      .li {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 11px 0;
+        border-bottom: 1px solid var(--line);
+        align-items: center;
+      }
+      .li:last-child {
+        border: 0;
+      }
+      .li small {
+        color: var(--mut);
+        display: block;
+      }
+      nav {
+        display: flex;
+        background: var(--card);
+        border-top: 1px solid var(--line);
+      }
+      nav button {
+        flex: 1;
+        border: 0;
+        border-radius: 0;
+        background: none;
+        color: var(--mut);
+        min-height: 58px;
+        font-size: 13px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+      }
+      nav button b {
+        font-size: 20px;
+        line-height: 1;
+      }
+      nav .on {
+        color: var(--pri);
+        background: var(--tint);
+      }
+      .bar {
+        height: 10px;
+        border-radius: 5px;
+        background: var(--tint);
+        margin-top: 4px;
+        overflow: hidden;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        background: var(--pri);
+      }
+      #toast {
+        position: fixed;
+        left: 50%;
+        bottom: 90px;
+        transform: translateX(-50%);
+        background: var(--ink);
+        color: var(--bg);
+        padding: 10px 18px;
+        border-radius: 10px;
+        display: none;
+        z-index: 9;
+        max-width: 90%;
+      }
+      #login {
+        position: fixed;
+        inset: 0;
+        background: var(--bg);
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      #login .card {
+        width: 100%;
+        max-width: 380px;
+      }
+      .hint {
+        color: var(--mut);
+        font-size: 13px;
+        margin-top: 10px;
+      }
+      @media print {
+        nav,
+        .noprint,
+        #toast {
+          display: none !important;
+        }
+        body {
+          background: #fff;
+          color: #000;
+          display: block;
+        }
+        #main {
+          overflow: visible;
+        }
+        .card,
+        .stat {
+          border-color: #999;
+          background: #fff;
+          color: #000;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="login">
+      <div class="card">
+        <h1>SSRSM Accounts</h1>
+        <label>Username</label
+        ><input id="lu" value="admin" autocomplete="username" />
+        <label>Password</label
+        ><input
+          id="lp"
+          type="password"
+          placeholder="admin123"
+          autocomplete="current-password"
+        />
+        <div style="height: 14px"></div>
+        <button class="p" style="width: 100%" onclick="login()">Log in</button>
+      </div>
+    </div>
+    <div id="app">
+      <nav id="nav"></nav>
+      <div id="main"></div>
+    </div>
+    <div id="toast"></div>
+    <script>
+      const $ = (s) => document.querySelector(s),
+        $$ = (s) => [...document.querySelectorAll(s)];
+      const K = "ssrsm_demo_v1",
+        MODES = ["Cash", "RTGS", "Cheque", "Auto"];
+      const td = (d = new Date()) =>
+        d.getFullYear() +
+        "-" +
+        String(d.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(d.getDate()).padStart(2, "0");
+      const yd = () => {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        return td(d);
+      };
+      const inr = (n) =>
+        "₹" + (Math.round(n * 100) / 100).toLocaleString("en-IN");
+      const uid = () => Math.random().toString(36).slice(2, 9);
+      const sum = (a, f) => a.reduce((t, x) => t + f(x), 0);
+      function seed() {
+        const T = td(),
+          Y = yd();
+        return {
+          cats: ["Dettol", "Dabur", "Diapers"],
+          prods: [
+            { id: "p1", n: "Dettol Soap 75g", c: "Dettol", s: 90, d: 0 },
+            { id: "p2", n: "Dettol Handwash 200ml", c: "Dettol", s: 55, d: 2 },
+            { id: "p3", n: "Dabur Honey 250g", c: "Dabur", s: 70, d: 0 },
+            { id: "p4", n: "Dabur Chyawanprash 500g", c: "Dabur", s: 40, d: 0 },
+            { id: "p5", n: "Pampers Medium", c: "Diapers", s: 45, d: 0 },
+            { id: "p6", n: "Huggies Large", c: "Diapers", s: 35, d: 0 },
+          ],
+          custs: [
+            { id: "c1", n: "Sharma General Store", ph: "98200 11111" },
+            { id: "c2", n: "Gupta Medical", ph: "98200 22222" },
+            { id: "c3", n: "Raj Kirana", ph: "98200 33333" },
+            { id: "c4", n: "City Mart", ph: "98200 44444" },
+          ],
+          sales: [
+            {
+              id: "s1",
+              d: Y,
+              c: "c1",
+              items: [
+                { p: "p1", q: 10, a: 6000 },
+                { p: "p3", q: 10, a: 14000 },
+              ],
+              t: 20000,
+              note: "",
+            },
+            {
+              id: "s2",
+              d: T,
+              c: "c2",
+              items: [{ p: "p2", q: 5, a: 8500 }],
+              t: 8500,
+              note: "",
+            },
+            {
+              id: "s3",
+              d: T,
+              c: "c3",
+              items: [{ p: "p5", q: 6, a: 12000 }],
+              t: 12000,
+              note: "Bulk order",
+            },
+          ],
+          pays: [
+            { id: "y1", d: Y, c: "c1", m: "Cash", a: 15000, st: "Cleared" },
+            { id: "y2", d: T, c: "c2", m: "RTGS", a: 5000, st: "Cleared" },
+            { id: "y3", d: T, c: "c3", m: "Auto", a: 4000, st: "Cleared" },
+            { id: "y4", d: T, c: "c1", m: "Cheque", a: 3000, st: "Pending" },
+          ],
+          rets: [
+            { id: "r1", d: T, c: "c2", p: "p2", q: 2, t: "Damaged" },
+            { id: "r2", d: T, c: "c3", p: "p5", q: 1, t: "Sellable" },
+          ],
+          adj: [],
+          closings: [],
+        };
+      }
+      let S = seed();
+      const save = () => {};
+      const prod = (n) =>
+        S.prods.find(
+          (p) => p.n.toLowerCase() === String(n).trim().toLowerCase(),
+        );
+      const pid = (i) => S.prods.find((p) => p.id === i);
+      const cust = (n) =>
+        S.custs.find(
+          (c) => c.n.toLowerCase() === String(n).trim().toLowerCase(),
+        );
+      const cid = (i) => S.custs.find((c) => c.id === i);
+      const live = (x) => x.st !== "Bounced";
+      const bal = (c) =>
+        sum(
+          S.sales.filter((s) => s.c === c),
+          (s) => s.t,
+        ) -
+        sum(
+          S.pays.filter((p) => p.c === c && live(p)),
+          (p) => p.a,
+        );
+      function toast(m) {
+        const t = $("#toast");
+        t.textContent = m;
+        t.style.display = "block";
+        clearTimeout(toast.t);
+        toast.t = setTimeout(() => (t.style.display = "none"), 2600);
+      }
+      function login() {
+        if ($("#lu").value === "admin" && $("#lp").value === "admin123") {
+          $("#login").style.display = "none";
+        } else toast("Wrong username or password");
+      }
+      const TABS = [
+        ["home", "⌂", "Home"],
+        ["sale", "＋", "Sale"],
+        ["pay", "₹", "Collect"],
+        ["stock", "▤", "Stock"],
+        ["more", "☰", "More"],
+      ];
+      let tab = "home",
+        sub = "";
+      function go(t, s = "") {
+        tab = t;
+        sub = s;
+        render();
+        $("#main").scrollTop = 0;
+      }
+      const dl = () =>
+        `<datalist id="cl">${S.custs.map((c) => `<option value="${c.n}">`).join("")}</datalist><datalist id="pl">${S.prods.map((p) => `<option value="${p.n}">${p.c}</option>`).join("")}</datalist>`;
+      const modeSel = (id) =>
+        `<select id="${id}">${MODES.map((m) => `<option>${m}</option>`).join("")}</select>`;
+      function render() {
+        $("#nav").innerHTML = TABS.map(
+          ([k, i, n]) =>
+            `<button class="${tab === k ? "on" : ""}" onclick="go('${k}')"><b>${i}</b>${n}</button>`,
+        ).join("");
+        const v = { home, sale, pay, stock, more }[tab];
+        $("#main").innerHTML = dl() + v();
+        if (tab === "sale") addLine();
+        if (tab === "rep") rep();
+      }
+      function colls(day) {
+        const P = S.pays.filter((p) => p.d === day && live(p));
+        return {
+          all: sum(P, (p) => p.a),
+          by: Object.fromEntries(
+            MODES.map((m) => [
+              m,
+              sum(
+                P.filter((p) => p.m === m),
+                (p) => p.a,
+              ),
+            ]),
+          ),
+        };
+      }
+      function home() {
+        const T = td(),
+          c = colls(T),
+          ts = sum(
+            S.sales.filter((s) => s.d === T),
+            (s) => s.t,
+          ),
+          tot = sum(S.prods, (p) => p.s),
+          out = sum(S.custs, (x) => Math.max(0, bal(x.id)));
+        const pend = S.custs
+          .filter((x) => bal(x.id) > 0)
+          .sort((a, b) => bal(b.id) - bal(a.id));
+        return `<h1>Today</h1><div class="grid">
+<div class="stat big"><span>Sales today</span><b>${inr(ts)}</b></div>
+<div class="stat"><span>Collected today</span><b>${inr(c.all)}</b></div>
+<div class="stat"><span>Outstanding</span><b class="acc">${inr(out)}</b></div>
+<div class="stat"><span>Sellable stock</span><b>${tot}</b><span>Damaged: ${sum(S.prods, (p) => p.d)}</span></div></div>
+<h2>Collection by mode</h2><div class="grid">${MODES.map((m) => `<div class="stat"><span>${m === "Auto" ? "Auto collection" : m}</span><b>${inr(c.by[m])}</b></div>`).join("")}</div>
+<div class="grid g2" style="margin-top:12px"><div class="card"><h2 style="margin-top:0">Stock by category</h2>${S.cats
+          .map((k) => {
+            const n = sum(
+              S.prods.filter((p) => p.c === k),
+              (p) => p.s,
+            );
+            return `<div style="margin-bottom:8px"><div class="li" style="padding:0;border:0"><span>${k}</span><b>${n}</b></div><div class="bar"><i style="width:${Math.min(100, (n / tot) * 100 * 2)}%"></i></div></div>`;
+          })
+          .join("")}</div>
+<div class="card"><h2 style="margin-top:0">Pending payments</h2>${pend.map((x) => `<div class="li"><span>${x.n}</span><b class="acc">${inr(bal(x.id))}</b></div>`).join("") || '<p class="hint">No pending balance.</p>'}</div></div>`;
+      }
+      function sale() {
+        return `<h1>New sale</h1><div class="card"><label>Shop</label><input id="sc" list="cl" placeholder="Search shop name">
+<h2>Items</h2><div id="lines"></div><button class="s" onclick="addLine()">+ Add item</button>
+<label>Note (optional)</label><input id="sn" placeholder="e.g. bulk order">
+<div class="grid g2" style="margin-top:6px"><div><label>Total</label><input id="st" readonly value="₹0"></div><div><label>Received now (optional)</label><input id="sp" type="number" inputmode="decimal" placeholder="0"></div></div>
+<label>Payment mode</label>${modeSel("sm")}<div style="height:14px"></div><button class="p" id="sb" style="width:100%" onclick="saveSale()">Save sale</button></div>`;
+      }
+      function addLine() {
+        const d = document.createElement("div");
+        d.className = "row ln";
+        d.innerHTML = `<div style="flex:2"><label>Product</label><input class="lp" list="pl" placeholder="Search product"></div><div><label>Qty</label><input class="lq" type="number" inputmode="numeric"></div><div><label>Amount ₹</label><input class="la" type="number" inputmode="decimal"></div><button class="x" onclick="this.parentNode.remove();tot()">✕</button>`;
+        d.oninput = tot;
+        $("#lines").appendChild(d);
+      }
+      function tot() {
+        $("#st").value = inr(sum($$(".la"), (i) => +i.value || 0));
+      }
+      function saveSale() {
+        const c = cust($("#sc").value);
+        if (!c) return toast("Pick a shop from the list");
+        const items = [];
+        for (const r of $$(".ln")) {
+          const p = prod(r.querySelector(".lp").value),
+            q = +r.querySelector(".lq").value,
+            a = +r.querySelector(".la").value;
+          if (!p || !(q > 0) || !(a > 0)) return toast("Check every item row");
+          items.push({ p: p.id, q, a });
+        }
+        if (!items.length) return toast("Add at least one item");
+        const need = {};
+        items.forEach((i) => (need[i.p] = (need[i.p] || 0) + i.q));
+        for (const k in need)
+          if (need[k] > pid(k).s)
+            return toast("Only " + pid(k).s + " left of " + pid(k).n);
+        const t = sum(items, (i) => i.a),
+          paid = +$("#sp").value || 0;
+        if (paid > t) return toast("Received is more than the total");
+        $("#sb").disabled = true;
+        items.forEach((i) => (pid(i.p).s -= i.q));
+        S.sales.push({
+          id: uid(),
+          d: td(),
+          c: c.id,
+          items,
+          t,
+          note: $("#sn").value,
+        });
+        if (paid > 0) {
+          const m = $("#sm").value;
+          S.pays.push({
+            id: uid(),
+            d: td(),
+            c: c.id,
+            m,
+            a: paid,
+            st: m === "Cheque" ? "Pending" : "Cleared",
+          });
+        }
+        save();
+        toast("Sale saved");
+        go("home");
+      }
+      function pay() {
+        const T = td(),
+          P = S.pays.filter((p) => p.d === T).reverse();
+        return `<h1>Collect payment</h1><div class="card"><label>Shop</label><input id="pc" list="cl" placeholder="Search shop name" oninput="ob()"><p id="ob" class="hint"></p>
+<label>Amount received ₹</label><input id="pa" type="number" inputmode="decimal"><label>Mode</label>${modeSel("pm")}
+<div style="height:14px"></div><button class="p" style="width:100%" onclick="savePay()">Save payment</button></div>
+<h2>Today’s collections</h2><div class="card">${P.map((p) => `<div class="li"><span>${cid(p.c).n}<small>${p.m}${p.m === "Cheque" ? ` · <select class="s" style="width:auto;min-height:30px;padding:0 6px" onchange="chq('${p.id}',this.value)">${["Pending", "Cleared", "Bounced"].map((x) => `<option${x === p.st ? " selected" : ""}>${x}</option>`).join("")}</select>` : ""}</small></span><b>${inr(p.a)}</b></div>`).join("") || '<p class="hint">Nothing collected yet today.</p>'}</div>`;
+      }
+      function ob() {
+        const c = cust($("#pc").value);
+        $("#ob").textContent = c ? "Pending balance: " + inr(bal(c.id)) : "";
+      }
+      function chq(i, s) {
+        S.pays.find((p) => p.id === i).st = s;
+        save();
+        render();
+        toast("Cheque marked " + s);
+      }
+      function savePay() {
+        const c = cust($("#pc").value),
+          a = +$("#pa").value;
+        if (!c) return toast("Pick a shop from the list");
+        if (!(a > 0)) return toast("Enter an amount");
+        if (
+          a > bal(c.id) &&
+          !confirm(
+            "This is more than the pending " +
+              inr(bal(c.id)) +
+              ". Save anyway?",
+          )
+        )
+          return;
+        const m = $("#pm").value;
+        S.pays.push({
+          id: uid(),
+          d: td(),
+          c: c.id,
+          m,
+          a,
+          st: m === "Cheque" ? "Pending" : "Cleared",
+        });
+        save();
+        toast("Payment saved");
+        render();
+      }
+      let cat = "All";
+      function stock() {
+        const T = td(),
+          L = S.prods.filter((p) => cat === "All" || p.c === cat);
+        return `<h1>Stock</h1><div class="chips">${["All", ...S.cats].map((k) => `<button class="${cat === k ? "on" : ""}" onclick="cat='${k}';render()">${k}</button>`).join("")}</div>
+<div class="card wrap"><table><tr><th>Product</th><th>Open</th><th>Sold</th><th>Ret</th><th>Close</th><th>Damaged</th></tr>${L.map(
+          (p) => {
+            const so = sum(
+                S.sales.filter((s) => s.d === T),
+                (s) =>
+                  sum(
+                    s.items.filter((i) => i.p === p.id),
+                    (i) => i.q,
+                  ),
+              ),
+              rt = sum(
+                S.rets.filter(
+                  (r) => r.d === T && r.p === p.id && r.t === "Sellable",
+                ),
+                (r) => r.q,
+              ),
+              ad = sum(
+                S.adj.filter((a) => a.d === T && a.p === p.id),
+                (a) => a.q,
+              );
+            return `<tr><td>${p.n}</td><td>${p.s + so - rt - ad}</td><td>${so}</td><td>${rt}</td><td><b>${p.s}</b></td><td class="${p.d ? "bad" : ""}">${p.d}</td></tr>`;
+          },
+        ).join("")}</table></div>
+<p class="hint">Close = Open − Sold + Sellable returns. Tomorrow’s opening is today’s closing automatically.</p>
+<h2>Return from shop</h2><div class="card"><label>Shop</label><input id="rc" list="cl"><label>Product</label><input id="rp" list="pl"><div class="grid g2"><div><label>Quantity</label><input id="rq" type="number" inputmode="numeric"></div><div><label>Type</label><select id="rt"><option>Sellable</option><option>Damaged</option></select></div></div><div style="height:14px"></div><button class="p" style="width:100%" onclick="saveRet()">Save return</button></div>
+<h2>Stock adjustment</h2><div class="card"><label>Product</label><input id="ap" list="pl"><div class="grid g2"><div><label>Change (+ or −)</label><input id="aq" type="number" inputmode="numeric"></div><div><label>Reason</label><input id="ar" placeholder="e.g. counting error"></div></div><div style="height:14px"></div><button style="width:100%" onclick="saveAdj()">Save adjustment</button>
+${S.adj
+  .slice(-3)
+  .reverse()
+  .map(
+    (a) =>
+      `<div class="li"><span>${pid(a.p).n}<small>${a.d} · ${a.r}</small></span><b>${a.q > 0 ? "+" : ""}${a.q}</b></div>`,
+  )
+  .join("")}</div>`;
+      }
+      function saveRet() {
+        const c = cust($("#rc").value),
+          p = prod($("#rp").value),
+          q = +$("#rq").value;
+        if (!c || !p || !(q > 0))
+          return toast("Pick shop, product and quantity");
+        const t = $("#rt").value;
+        if (t === "Sellable") p.s += q;
+        else p.d += q;
+        S.rets.push({ id: uid(), d: td(), c: c.id, p: p.id, q, t });
+        save();
+        toast(t + " return saved");
+        render();
+      }
+      function saveAdj() {
+        const p = prod($("#ap").value),
+          q = +$("#aq").value,
+          r = $("#ar").value.trim();
+        if (!p || !q) return toast("Pick product and quantity");
+        if (!r) return toast("A reason is required");
+        if (p.s + q < 0) return toast("Stock cannot go below zero");
+        p.s += q;
+        S.adj.push({ id: uid(), d: td(), p: p.id, q, r });
+        save();
+        toast("Adjustment saved");
+        render();
+      }
+      function more() {
+        if (sub)
+          return (
+            `<button onclick="go('more')" class="noprint">← Back</button>` +
+            { cust: custv, prods, rep: repv, close }[sub]()
+          );
+        return `<h1>More</h1><div class="grid">${[
+          ["cust", "Customers"],
+          ["prods", "Products & categories"],
+          ["rep", "Reports & PDF"],
+          ["close", "Daily closing"],
+        ]
+          .map(
+            ([k, n]) =>
+              `<button style="min-height:90px" onclick="go('more','${k}')">${n}</button>`,
+          )
+          .join("")}</div>
+<p class="hint" style="margin-top:16px">Demo data goes back to the starting values every time you reopen the app. <a href="#" onclick="if(confirm('Reset all demo data?')){S=seed();save();go('home')}return false">Reset demo data</a></p>`;
+      }
+      function custv() {
+        return `<h1>Customers</h1><div class="card"><div class="row"><div style="flex:2"><label>New shop name</label><input id="nn"></div><div><label>Phone</label><input id="np" inputmode="tel"></div></div><div style="height:12px"></div><button class="p" onclick="addC()">Add shop</button></div>
+<div class="card">${S.custs.map((c) => `<div class="li" onclick="led('${c.id}')" style="cursor:pointer"><span>${c.n}<small>${c.ph || ""}</small></span><b class="${bal(c.id) > 0 ? "acc" : "ok"}">${bal(c.id) > 0 ? inr(bal(c.id)) + " due" : "Clear"}</b></div>`).join("")}</div><div id="led"></div>`;
+      }
+      function addC() {
+        const n = $("#nn").value.trim();
+        if (!n || cust(n)) return toast("Enter a new shop name");
+        S.custs.push({ id: uid(), n, ph: $("#np").value });
+        save();
+        render();
+      }
+      function led(i) {
+        const c = cid(i),
+          E = [
+            ...S.sales
+              .filter((s) => s.c === i)
+              .map((s) => ({
+                d: s.d,
+                t: "Sale",
+                a: s.t,
+                x: s.items.map((z) => pid(z.p).n + " ×" + z.q).join(", "),
+              })),
+            ...S.pays
+              .filter((p) => p.c === i)
+              .map((p) => ({
+                d: p.d,
+                t: p.m + (p.st !== "Cleared" ? " (" + p.st + ")" : ""),
+                a: -(live(p) ? p.a : 0),
+                x: "Payment",
+              })),
+          ].sort((a, b) => (a.d < b.d ? -1 : 1));
+        $("#led").innerHTML =
+          `<h2>${c.n} — ledger</h2><div class="card">${E.map((e) => `<div class="li"><span>${e.t}<small>${e.d} · ${e.x}</small></span><b class="${e.a < 0 ? "ok" : ""}">${e.a < 0 ? "−" : ""}${inr(Math.abs(e.a))}</b></div>`).join("")}<div class="li"><b>Pending</b><b class="acc">${inr(bal(i))}</b></div></div>`;
+        $("#led").scrollIntoView();
+      }
+      function prods() {
+        return `<h1>Products & categories</h1><div class="card"><div class="row"><div><label>New category</label><input id="nc"></div><button class="p" onclick="addCat()">Add</button></div></div>
+<div class="card"><label>New product</label><input id="npn"><div class="row"><div><label>Category</label><select id="npc">${S.cats.map((k) => `<option>${k}</option>`).join("")}</select></div><div><label>Opening stock</label><input id="nps" type="number" inputmode="numeric" value="0"></div></div><div style="height:12px"></div><button class="p" onclick="addP()">Add product</button></div>
+<div class="card">${S.prods.map((p) => `<div class="li"><span>${p.n}<small>${p.c}</small></span><b>${p.s}</b></div>`).join("")}</div>`;
+      }
+      function addCat() {
+        const n = $("#nc").value.trim();
+        if (!n || S.cats.includes(n)) return toast("Enter a new category");
+        S.cats.push(n);
+        save();
+        render();
+      }
+      function addP() {
+        const n = $("#npn").value.trim();
+        if (!n || prod(n)) return toast("Enter a new product name");
+        S.prods.push({
+          id: uid(),
+          n,
+          c: $("#npc").value,
+          s: Math.max(0, +$("#nps").value || 0),
+          d: 0,
+        });
+        save();
+        render();
+      }
+      let per = "Daily",
+        a1 = td(),
+        a2 = td();
+      function range() {
+        const d = new Date(a1 + "T00:00"),
+          y = d.getFullYear(),
+          m = d.getMonth();
+        if (per === "Daily") return [a1, a1];
+        if (per === "Monthly")
+          return [td(new Date(y, m, 1)), td(new Date(y, m + 1, 0))];
+        if (per === "Quarterly") {
+          const q = Math.floor(m / 3) * 3;
+          return [td(new Date(y, q, 1)), td(new Date(y, q + 3, 0))];
+        }
+        if (per === "Yearly") return [y + "-01-01", y + "-12-31"];
+        return [a1, a2];
+      }
+      function repv() {
+        return `<h1>Reports</h1><div class="card noprint"><div class="chips">${["Daily", "Monthly", "Quarterly", "Yearly", "Custom"].map((k) => `<button class="${per === k ? "on" : ""}" onclick="per='${k}';go('more','rep')">${k}</button>`).join("")}</div>
+<div class="row"><div><label>${per === "Custom" ? "From" : "Date"}</label><input type="date" value="${a1}" onchange="a1=this.value;go('more','rep')"></div>${per === "Custom" ? `<div><label>To</label><input type="date" value="${a2}" onchange="a2=this.value;go('more','rep')"></div>` : ""}</div>
+<div style="height:12px"></div><button class="p" onclick="window.print()">Print / Save as PDF</button></div><div id="rb"></div>`;
+      }
+      function rep() {}
+      function repBody() {
+        const [f, t] = range(),
+          In = (x) => x.d >= f && x.d <= t,
+          SA = S.sales.filter(In),
+          PA = S.pays.filter((x) => In(x) && live(x)),
+          RE = S.rets.filter(In);
+        const pr = S.prods
+          .map((p) => ({
+            n: p.n,
+            q: sum(SA, (s) =>
+              sum(
+                s.items.filter((i) => i.p === p.id),
+                (i) => i.q,
+              ),
+            ),
+            a: sum(SA, (s) =>
+              sum(
+                s.items.filter((i) => i.p === p.id),
+                (i) => i.a,
+              ),
+            ),
+          }))
+          .filter((x) => x.q);
+        return `<div class="card"><b>SSRSM Accounts</b> — report for ${f}${f !== t ? " to " + t : ""}
+<div class="grid" style="margin-top:10px"><div class="stat"><span>Total sales</span><b>${inr(sum(SA, (s) => s.t))}</b></div><div class="stat"><span>Total collected</span><b>${inr(sum(PA, (p) => p.a))}</b></div></div>
+<h2>Payment mode summary</h2><table>${MODES.map(
+          (m) =>
+            `<tr><td>${m}</td><td>${inr(
+              sum(
+                PA.filter((p) => p.m === m),
+                (p) => p.a,
+              ),
+            )}</td></tr>`,
+        ).join("")}</table>
+<h2>Product-wise sales</h2><table><tr><th>Product</th><th>Qty</th><th>Amount</th></tr>${pr.map((x) => `<tr><td>${x.n}</td><td>${x.q}</td><td>${inr(x.a)}</td></tr>`).join("") || "<tr><td>No sales</td><td></td><td></td></tr>"}</table>
+<h2>Returns</h2><p>Sellable: ${sum(
+          RE.filter((r) => r.t === "Sellable"),
+          (r) => r.q,
+        )} · Damaged: ${sum(
+          RE.filter((r) => r.t === "Damaged"),
+          (r) => r.q,
+        )}</p>
+<h2>Customer-wise outstanding (now)</h2><table>${
+          S.custs
+            .filter((c) => bal(c.id) > 0)
+            .map((c) => `<tr><td>${c.n}</td><td>${inr(bal(c.id))}</td></tr>`)
+            .join("") || "<tr><td>All clear</td><td></td></tr>"
+        }</table></div>`;
+      }
+      function close() {
+        const T = td(),
+          c = colls(T),
+          ts = sum(
+            S.sales.filter((s) => s.d === T),
+            (s) => s.t,
+          );
+        return `<h1>Daily closing</h1><div class="card"><div class="li"><span>Total sales</span><b>${inr(ts)}</b></div><div class="li"><span>Total collections</span><b>${inr(c.all)}</b></div>${MODES.map((m) => `<div class="li"><span>${m}</span><b>${inr(c.by[m])}</b></div>`).join("")}
+<label>Actual cash in hand ₹</label><input id="ca" type="number" inputmode="decimal" oninput="cd(${c.by.Cash})"><p id="cdf" style="font-weight:600"></p><button class="p" style="width:100%" onclick="saveCl(${c.by.Cash},${ts},${c.all})">Save today’s closing</button></div>
+<h2>History</h2><div class="card">${
+          S.closings
+            .slice()
+            .reverse()
+            .map(
+              (x) =>
+                `<div class="li"><span>${x.d}<small>Sales ${inr(x.s)} · Collected ${inr(x.c)}</small></span><b class="${x.diff ? "bad" : "ok"}">${x.diff ? inr(x.diff) : "Matched"}</b></div>`,
+            )
+            .join("") || '<p class="hint">No closings saved yet.</p>'
+        }</div>`;
+      }
+      function cd(e) {
+        const d = (+$("#ca").value || 0) - e;
+        $("#cdf").className = d ? "bad" : "ok";
+        $("#cdf").textContent = d
+          ? "Mismatch: " + inr(d) + (d < 0 ? " short" : " extra")
+          : "Cash matches";
+      }
+      function saveCl(e, s, c) {
+        const a = $("#ca").value;
+        if (a === "") return toast("Enter the actual cash");
+        S.closings = S.closings.filter((x) => x.d !== td());
+        S.closings.push({ d: td(), s, c, diff: +a - e });
+        save();
+        toast("Closing saved");
+        render();
+      }
+      const _r = render;
+      render = function () {
+        _r();
+        if (tab === "more" && sub === "rep") $("#rb").innerHTML = repBody();
+      };
+      render();
+    </script>
+  </body>
+</html>
