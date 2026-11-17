@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import * as registerCtrl from '../controllers/registerController.js';
+
 const router = express.Router();
-const registerCtrl = require('../controllers/registerController');
 
 // Products & Salesmen
 router.get('/products', registerCtrl.getProducts);
@@ -12,4 +13,4 @@ router.get('/registers/opening-stock', registerCtrl.getOpeningStock);
 router.post('/registers', registerCtrl.createRegisterEntry);
 router.get('/registers', registerCtrl.getRegisters);
 
-module.exports = router;
+export default router;

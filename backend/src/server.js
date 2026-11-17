@@ -1,8 +1,10 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
-const db = require('./config/db');
-const apiRoutes = require('./routes/api');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import db from './config/db.js';
+import apiRoutes from './routes/api.js';
+
+dotenv.config();
 
 const app = express();
 
@@ -29,5 +31,5 @@ app.get('/api/health', async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(` Server is running on http://localhost:${PORT}`);
+  console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });
