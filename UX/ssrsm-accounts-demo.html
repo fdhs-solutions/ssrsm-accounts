@@ -1,0 +1,1533 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset=utf8>
+  <meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <style>
+    :root {
+      color-scheme: light;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px)
+    }
+
+    html {
+      scroll-padding-top: env(safe-area-inset-top, 0px)
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font: 14px -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #fff;
+      color: #000
+    }
+
+    img {
+      max-width: 100%
+    }
+
+    [hidden]:not([hidden=until-found i]) {
+      display: none !important
+    }
+  </style>
+</head>
+
+<body>
+  <title>SSRSM Accounts</title>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;800&family=Sora:wght@600;800&display=swap">
+  <style>
+    :root {
+      --bg: #EEF2F5;
+      --card: #fff;
+      --ink: #14243A;
+      --mut: #5F6F82;
+      --line: #D5DDE5;
+      --pri: #1F4E79;
+      --onpri: #fff;
+      --acc: #B7791F;
+      --ok: #0E7C66;
+      --bad: #C0392B;
+      --tint: #E3EDF6;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px)
+    }
+
+    @media (prefers-color-scheme:dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0F1822;
+        --card: #172433;
+        --ink: #E6EDF4;
+        --mut: #93A4B8;
+        --line: #2B3C50;
+        --pri: #6FA8DC;
+        --onpri: #0F1822;
+        --acc: #E6B450;
+        --ok: #3FC1A5;
+        --bad: #F0776A;
+        --tint: #1E3248;
+        color-scheme: dark
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #0F1822;
+      --card: #172433;
+      --ink: #E6EDF4;
+      --mut: #93A4B8;
+      --line: #2B3C50;
+      --pri: #6FA8DC;
+      --onpri: #0F1822;
+      --acc: #E6B450;
+      --ok: #3FC1A5;
+      --bad: #F0776A;
+      --tint: #1E3248;
+      color-scheme: dark
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.45 Mukta, system-ui, sans-serif;
+      display: flex;
+      flex-direction: column
+    }
+
+    #app {
+      flex: 1;
+      display: flex;
+      flex-direction: column-reverse;
+      min-height: 0
+    }
+
+    #main {
+      flex: 1;
+      overflow: auto;
+      padding: 14px;
+      max-width: 980px;
+      width: 100%;
+      margin: 0 auto
+    }
+
+    h1 {
+      font-size: 22px;
+      margin: 4px 0 12px;
+      font-weight: 800
+    }
+
+    h2 {
+      font-size: 17px;
+      margin: 18px 0 8px;
+      font-weight: 600
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr
+    }
+
+    @media(min-width:768px) {
+      .grid {
+        grid-template-columns: repeat(4, 1fr)
+      }
+
+      .g2 {
+        grid-template-columns: 1fr 1fr
+      }
+    }
+
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px
+    }
+
+    .stat b {
+      display: block;
+      font-size: 22px;
+      font-weight: 800
+    }
+
+    .stat span {
+      color: var(--mut);
+      font-size: 14px
+    }
+
+    .big {
+      background: var(--pri);
+      color: var(--onpri);
+      border-color: var(--pri)
+    }
+
+    .big span {
+      color: inherit;
+      opacity: .85
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      color: var(--mut);
+      margin: 10px 0 4px
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      font: inherit;
+      color: inherit
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-height: 48px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg)
+    }
+
+    button {
+      min-height: 48px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      cursor: pointer;
+      font-weight: 600
+    }
+
+    button.p {
+      background: var(--pri);
+      color: var(--onpri);
+      border-color: var(--pri)
+    }
+
+    button.s {
+      min-height: 38px;
+      padding: 4px 12px;
+      font-size: 14px
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 3px solid var(--acc);
+      outline-offset: 1px
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end
+    }
+
+    .row>* {
+      flex: 1
+    }
+
+    .row>.x {
+      flex: 0 0 48px;
+      padding: 0
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px
+    }
+
+    th,
+    td {
+      padding: 8px 6px;
+      text-align: right;
+      border-bottom: 1px solid var(--line)
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left
+    }
+
+    th {
+      color: var(--mut);
+      font-weight: 600;
+      font-size: 13px
+    }
+
+    .wrap {
+      overflow-x: auto
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 99px;
+      font-size: 13px;
+      background: var(--tint)
+    }
+
+    .ok {
+      color: var(--ok)
+    }
+
+    .bad {
+      color: var(--bad)
+    }
+
+    .acc {
+      color: var(--acc)
+    }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 8px
+    }
+
+    .chips button {
+      white-space: nowrap;
+      min-height: 40px
+    }
+
+    .chips .on {
+      background: var(--pri);
+      color: var(--onpri);
+      border-color: var(--pri)
+    }
+
+    .li {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line);
+      align-items: center
+    }
+
+    .li:last-child {
+      border: 0
+    }
+
+    .li small {
+      color: var(--mut);
+      display: block
+    }
+
+    nav {
+      display: flex;
+      background: var(--card);
+      border-top: 1px solid var(--line)
+    }
+
+    nav button {
+      flex: 1;
+      border: 0;
+      border-radius: 0;
+      background: none;
+      color: var(--mut);
+      min-height: 58px;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0
+    }
+
+    nav button b {
+      font-size: 20px;
+      line-height: 1
+    }
+
+    nav .on {
+      color: var(--pri);
+      background: var(--tint)
+    }
+
+    .bar {
+      height: 10px;
+      border-radius: 5px;
+      background: var(--tint);
+      margin-top: 4px;
+      overflow: hidden
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      background: var(--pri)
+    }
+
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 90px;
+      transform: translateX(-50%);
+      background: var(--ink);
+      color: var(--bg);
+      padding: 10px 18px;
+      border-radius: 10px;
+      display: none;
+      z-index: 9;
+      max-width: 90%
+    }
+
+    #login {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px
+    }
+
+    #login .card {
+      width: 100%;
+      max-width: 380px
+    }
+
+    .hint {
+      color: var(--mut);
+      font-size: 13px;
+      margin-top: 10px
+    }
+
+    :root {
+      --bg: #F3F5FB;
+      --card: #fff;
+      --ink: #14173A;
+      --mut: #69708F;
+      --line: #E3E6F2;
+      --pri: #4338CA;
+      --onpri: #fff;
+      --acc: #D97706;
+      --ok: #059669;
+      --bad: #DC2626;
+      --tint: #EEF0FF
+    }
+
+    @media (prefers-color-scheme:dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0B1020;
+        --card: #151B30;
+        --ink: #EEF1FA;
+        --mut: #9AA4C0;
+        --line: #273050;
+        --pri: #818CF8;
+        --onpri: #0B1020;
+        --acc: #FBBF24;
+        --ok: #34D399;
+        --bad: #F87171;
+        --tint: #1E2647
+      }
+    }
+
+    h1,
+    .stat b {
+      font-family: Sora, Mukta, system-ui, sans-serif;
+      letter-spacing: -.02em
+    }
+
+    h1 {
+      font-size: 24px
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px
+    }
+
+    .top small {
+      color: var(--mut)
+    }
+
+    .top h1 {
+      margin: 0
+    }
+
+    .lo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 8px 14px;
+      color: var(--bad);
+      font-weight: 700;
+      box-shadow: 0 1px 2px rgba(20, 23, 58, .06), 0 6px 16px rgba(20, 23, 58, .08)
+    }
+
+    .lo svg {
+      width: 20px;
+      height: 20px
+    }
+
+    #fcl {
+      opacity: .5;
+      background: var(--tint);
+      color: var(--mut);
+      cursor: not-allowed;
+      pointer-events: none;
+      user-select: none
+    }
+
+    .ca {
+      margin-top: 4px
+    }
+
+    #pv {
+      position: fixed;
+      inset: 0;
+      z-index: 15;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column
+    }
+
+    #pv .pvt {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      background: var(--card);
+      box-shadow: 0 2px 10px rgba(20, 23, 58, .12)
+    }
+
+    #pv .pvt b {
+      flex: 1;
+      font-family: Sora, Mukta, sans-serif
+    }
+
+    #pv .pvb {
+      flex: 1;
+      overflow: auto;
+      padding: 12px
+    }
+
+    #pv .paper {
+      background: #fff;
+      color: #000;
+      border-radius: 6px;
+      padding: 16px;
+      min-width: max-content;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, .25)
+    }
+
+    #pv .paper h3 {
+      text-align: center;
+      margin: 0;
+      font: 800 18px Sora, Mukta, sans-serif
+    }
+
+    #pv .paper p {
+      text-align: center;
+      margin: 4px 0 12px;
+      color: #444;
+      font-size: 14px
+    }
+
+    #pv .paper table {
+      min-width: 900px;
+      border-collapse: collapse
+    }
+
+    #pv .paper th,
+    #pv .paper td {
+      border: 1.2px solid #1F2F8F;
+      padding: 7px 8px;
+      text-align: right;
+      background: #fff;
+      color: #000
+    }
+
+    #pv .paper th {
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.25
+    }
+
+    #pv .paper td:nth-child(-n+2) {
+      text-align: center
+    }
+
+    #pv .paper td.nt {
+      text-align: left;
+      min-width: 140px
+    }
+
+    #pv .paper tfoot td {
+      font-weight: 800
+    }
+
+    @media print {
+      #pv {
+        display: none !important
+      }
+    }
+
+    .card,
+    .stat {
+      border: 0;
+      border-radius: 18px;
+      box-shadow: 0 1px 2px rgba(20, 23, 58, .06), 0 8px 22px rgba(20, 23, 58, .07)
+    }
+
+    .stat b {
+      font-size: 21px;
+      margin-top: 2px
+    }
+
+    .big,
+    .hero {
+      background: linear-gradient(135deg, #312E81, #4F46E5 55%, #06B6D4);
+      color: #fff
+    }
+
+    .hero {
+      grid-column: 1/-1;
+      padding: 20px
+    }
+
+    .hero b {
+      font-size: 34px;
+      color: #fff
+    }
+
+    .hero span {
+      color: #fff;
+      opacity: .85
+    }
+
+    .md {
+      border-top: 4px solid var(--pri)
+    }
+
+    .md.Cash {
+      border-color: #059669
+    }
+
+    .md.RTGS {
+      border-color: #4F46E5
+    }
+
+    .md.Cheque {
+      border-color: #D97706
+    }
+
+    .md.Auto {
+      border-color: #06B6D4
+    }
+
+    input,
+    select,
+    textarea {
+      background: var(--card);
+      border: 1.5px solid var(--line);
+      border-radius: 14px
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--pri)
+    }
+
+    button {
+      border-radius: 14px
+    }
+
+    button.p {
+      background: linear-gradient(135deg, #4338CA, #4F46E5);
+      color: #fff;
+      border: 0;
+      box-shadow: 0 6px 14px rgba(79, 70, 229, .35)
+    }
+
+    th {
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      font-size: 12px
+    }
+
+    nav {
+      margin: 0 12px 10px;
+      border: 0;
+      border-radius: 24px;
+      padding: 6px;
+      gap: 4px;
+      box-shadow: 0 10px 30px rgba(20, 23, 58, .22)
+    }
+
+    nav button {
+      border-radius: 18px;
+      min-height: 58px
+    }
+
+    nav .on {
+      background: var(--tint);
+      color: var(--pri)
+    }
+
+    nav svg {
+      width: 24px;
+      height: 24px
+    }
+
+    #login {
+      background: linear-gradient(160deg, #312E81, #4F46E5 60%, #06B6D4)
+    }
+
+    #login .card {
+      padding: 26px
+    }
+
+    #login h1 {
+      margin-top: 0
+    }
+
+    .ph {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      color: #fff;
+      border-radius: 20px;
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 8px 22px rgba(20, 23, 58, .18)
+    }
+
+    .ph i {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .2);
+      display: grid;
+      place-items: center;
+      flex: none
+    }
+
+    .ph svg {
+      width: 24px;
+      height: 24px
+    }
+
+    .ph b {
+      display: block;
+      font: 800 20px Sora, Mukta, sans-serif
+    }
+
+    .ph small {
+      opacity: .9
+    }
+
+    .ph~h1 {
+      display: none
+    }
+
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px
+    }
+
+    h2:before {
+      content: "";
+      width: 4px;
+      height: 18px;
+      border-radius: 2px;
+      background: var(--pri)
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: .02em
+    }
+
+    .ln {
+      background: var(--tint);
+      padding: 10px;
+      border-radius: 14px;
+      margin-bottom: 8px
+    }
+
+    tr:nth-child(even) td {
+      background: rgba(99, 102, 241, .06)
+    }
+
+    td b {
+      color: var(--pri)
+    }
+
+    .tile {
+      color: #fff;
+      border: 0;
+      min-height: 120px;
+      border-radius: 20px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: flex-start;
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(20, 23, 58, .2)
+    }
+
+    .tile svg {
+      width: 28px;
+      height: 28px;
+      margin-bottom: auto
+    }
+
+    .tile b {
+      font-size: 17px
+    }
+
+    .tile small {
+      opacity: .85;
+      font-weight: 400
+    }
+
+    .who {
+      display: flex;
+      gap: 12px;
+      align-items: center
+    }
+
+    .who em {
+      font-style: normal
+    }
+
+    .ini {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: var(--tint);
+      color: var(--pri);
+      display: grid;
+      place-items: center;
+      font-style: normal;
+      font-weight: 800;
+      flex: none
+    }
+
+    #main>* {
+      animation: up .35s both
+    }
+
+    @keyframes up {
+      from {
+        opacity: 0;
+        transform: translateY(8px)
+      }
+    }
+
+    .chart {
+      display: flex;
+      gap: 10px;
+      height: 190px;
+      margin: 8px 0 14px
+    }
+
+    .cb {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      font-size: 12px;
+      min-width: 0
+    }
+
+    .cb>b {
+      font-size: 12px;
+      margin-bottom: 4px
+    }
+
+    .bw {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      width: 100%
+    }
+
+    .bw i {
+      width: 100%;
+      border-radius: 8px 8px 0 0;
+      min-height: 4px
+    }
+
+    .cb>span {
+      margin-top: 6px;
+      color: var(--mut);
+      line-height: 1.2
+    }
+
+    .regt {
+      width: 100%;
+      min-width: 920px;
+      border-collapse: collapse
+    }
+
+    .regt th,
+    .regt td {
+      border: 1.5px solid var(--pri);
+      padding: 9px 8px;
+      text-align: right
+    }
+
+    .regt th {
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.25;
+      background: var(--tint)
+    }
+
+    .regt td:nth-child(-n+2) {
+      text-align: center
+    }
+
+    .regt .nt {
+      text-align: left;
+      min-width: 150px
+    }
+
+    .rg {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 12px
+    }
+
+    .rd {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 0;
+      margin: 0;
+      color: var(--ink);
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 0
+    }
+
+    .rd input {
+      width: 26px;
+      height: 26px;
+      min-height: 0;
+      padding: 0;
+      flex: none;
+      accent-color: var(--pri)
+    }
+
+    @page {
+      size: A4 landscape;
+      margin: 12mm
+    }
+
+    #rg table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse
+    }
+
+    #rg th,
+    #rg td {
+      border: 1.5px solid var(--pri);
+      padding: 9px 8px;
+      text-align: right
+    }
+
+    #rg th {
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.25;
+      background: var(--tint)
+    }
+
+    #rg td:nth-child(-n+2) {
+      text-align: center
+    }
+
+    #rg tfoot td {
+      font-weight: 800;
+      background: var(--tint)
+    }
+
+    .rgt {
+      text-align: center;
+      font-weight: 800;
+      font-size: 18px
+    }
+
+    .rgs {
+      text-align: center;
+      color: var(--mut);
+      font-size: 14px;
+      margin-bottom: 10px
+    }
+
+    @media print {
+      .ph {
+        display: none !important
+      }
+
+      #rb {
+        display: none
+      }
+
+      #rg .card {
+        box-shadow: none;
+        border: 0;
+        padding: 0;
+        background: #fff
+      }
+
+      #rg h2 {
+        display: none
+      }
+
+      #rg .wrap {
+        overflow: visible
+      }
+
+      #rg table {
+        min-width: 0;
+        font-size: 12.5px;
+        color: #000
+      }
+
+      #rg th,
+      #rg td {
+        padding: 10px 6px;
+        border-color: #1F2F8F;
+        color: #000
+      }
+
+      #rg th,
+      #rg tfoot td {
+        background: #fff
+      }
+
+      .rgt,
+      .rgs {
+        color: #000
+      }
+    }
+
+    @media print {
+
+      nav,
+      .noprint,
+      #toast {
+        display: none !important
+      }
+
+      body {
+        background: #fff;
+        color: #000;
+        display: block
+      }
+
+      #main {
+        overflow: visible
+      }
+
+      .card,
+      .stat {
+        border-color: #999;
+        background: #fff;
+        color: #000
+      }
+    }
+
+    .regt tfoot td {
+      font-weight: 800;
+      background: var(--tint)
+    }
+
+    .regt td.sm,
+    #pv .paper td.sm {
+      text-align: left;
+      min-width: 100px
+    }
+
+    .regt tr.grp td {
+      background: rgba(217, 119, 6, .14)
+    }
+
+    #pv .paper tr.grp td {
+      background: #FFF6DD
+    }
+
+    @media print {
+      .regt tr.grp td {
+        background: #FFF6DD !important
+      }
+    }
+
+    .po {
+      display: none;
+      text-align: right;
+      color: #69708F;
+      font-size: 12px;
+      margin-top: 8px
+    }
+
+    @media print {
+
+      html,
+      body {
+        height: auto !important
+      }
+
+      #app {
+        display: block !important;
+        height: auto !important
+      }
+
+      #main {
+        max-width: none !important;
+        padding: 0 !important;
+        overflow: visible !important
+      }
+
+      .po {
+        display: block !important;
+        color: #000
+      }
+
+      .regt thead {
+        display: table-header-group
+      }
+
+      .regt tr {
+        page-break-inside: avoid
+      }
+    }
+
+    @media print {
+      .regt {
+        min-width: 0;
+        font-size: 11px;
+        color: #000
+      }
+
+      .regt th,
+      .regt td {
+        padding: 6px 4px;
+        border-color: #1F2F8F;
+        color: #000;
+        background: #fff !important
+      }
+
+      .wrap {
+        overflow: visible
+      }
+
+      .rgt,
+      .rgs {
+        color: #000
+      }
+    }
+  </style>
+  <div id="login">
+    <div class="card">
+      <h1>SSRSM Accounts</h1>
+      <label>Username</label><input id="lu" value="admin" autocomplete="username">
+      <label>Password</label><input id="lp" type="password" placeholder="admin123" autocomplete="current-password">
+      <div style="height:14px"></div><button class="p" style="width:100%" onclick="login()">Log in</button>
+    </div>
+  </div>
+  <div id="app">
+    <nav id="nav"></nav>
+    <div id="main"></div>
+  </div>
+  <div id="toast"></div>
+  <script>
+    const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+    const K = 'ssrsm_demo_v1', MODES = ['Cash', 'RTGS', 'Cheque', 'Auto', 'Credit'];
+    const td = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const yd = () => { const d = new Date(); d.setDate(d.getDate() - 1); return td(d) };
+    const inr = n => '₹' + (Math.round(n * 100) / 100).toLocaleString('en-IN');
+    const escH = s => String(s).replace(/[&<>"]/g, h => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[h]));
+    const uid = () => Math.random().toString(36).slice(2, 9);
+    const sum = (a, f) => a.reduce((t, x) => t + f(x), 0);
+    function seed() {
+      const T = td(), Y = T; return {
+        cats: ['Dettol', 'Dabur', 'Diapers'],
+        prods: [{ id: 'p1', n: 'Dettol', c: 'Dettol', s: 145, d: 2 }, { id: 'p2', n: 'Dabur', c: 'Dabur', s: 110, d: 0 }, { id: 'p3', n: 'Diapers', c: 'Diapers', s: 80, d: 0 }],
+        custs: [{ id: 'c1', n: 'Sharma General Store', ph: '98200 11111' }, { id: 'c2', n: 'Gupta Medical', ph: '98200 22222' }, { id: 'c3', n: 'Raj Kirana', ph: '98200 33333' }, { id: 'c4', n: 'City Mart', ph: '98200 44444' }],
+        sales: [{ id: 's1', d: Y, c: 'c1', items: [{ p: 'p1', q: 10, a: 6000 }, { p: 'p2', q: 10, a: 14000 }], t: 20000, note: '' }, { id: 's2', d: T, c: 'c2', items: [{ p: 'p1', q: 5, a: 8500 }], t: 8500, note: '' }, { id: 's3', d: T, c: 'c3', items: [{ p: 'p3', q: 6, a: 12000 }], t: 12000, note: 'Bulk order' }],
+        pays: [{ id: 'y1', d: Y, c: 'c1', m: 'Cash', a: 15000, st: 'Cleared' }, { id: 'y2', d: T, c: 'c2', m: 'RTGS', a: 5000, st: 'Cleared' }, { id: 'y3', d: T, c: 'c3', m: 'Auto', a: 4000, st: 'Cleared' }, { id: 'y4', d: T, c: 'c1', m: 'Cheque', a: 3000, st: 'Pending' }],
+        rets: [{ id: 'r1', d: T, c: 'c2', p: 'p1', q: 2, t: 'Damaged' }, { id: 'r2', d: T, c: 'c3', p: 'p3', q: 1, t: 'Sellable' }],
+        adj: [], closings: [], reg: [], sm: []
+      }
+    }
+    let S = seed();
+    const save = () => { };
+    const prod = n => S.prods.find(p => p.n.toLowerCase() === String(n).trim().toLowerCase());
+    const pid = i => S.prods.find(p => p.id === i) || { n: '(deleted)', s: 0, d: 0, c: '' };
+    const cust = n => S.custs.find(c => c.n.toLowerCase() === String(n).trim().toLowerCase());
+    const cid = i => S.custs.find(c => c.id === i);
+    const live = x => x.st !== 'Bounced';
+    const bal = () => sum(S.sales, s => s.t) - sum(S.pays.filter(live), p => p.a);
+    function toast(m) { const t = $('#toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = 'none', 2600) }
+    function logout() { $('#lp').value = ''; $('#login').style.display = 'flex'; tab = 'home'; sub = ''; render() }
+    function login() { if ($('#lu').value === 'admin' && $('#lp').value === 'admin123') { $('#login').style.display = 'none' } else toast('Wrong username or password') }
+    const IC = d => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>';
+    const TABS = [['home', IC('M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z'), 'Home'], ['sale', IC('M12 5v14M5 12h14'), 'Stock'], ['stock', IC('M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2M7 14h10v7H7z'), 'Print / PDF'], ['sm', IC('M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'), 'Sales man']];
+    let tab = 'home', sub = '';
+    function go(t, s = '') { tab = t; sub = s; render(); $('#main').scrollTop = 0 }
+    const BN = { sale: ['New stock', '', '#4338CA,#6366F1', ''], pay: ['Collect payment', 'Cash, RTGS, cheque or auto', '#047857,#10B981', 'M6 5h12M6 10h12M9 5c5 0 5 7 0 7H6l8 8'], stock: ['Print / PDF', '', '#B45309,#F59E0B', ''], sm: ['Sales man', '', '#0E7490,#06B6D4', ''], more: ['More', 'Customers, products, reports, closing', '#6D28D9,#A855F7', 'M4 7h16M4 12h16M4 17h16'] };
+    const SUBT = { cust: 'Customers', prods: 'Products', rep: 'Reports & PDF', close: 'Daily closing' };
+    function banner() { const b = BN[tab], s = tab === 'more' && sub; return `<div class="ph" style="background:linear-gradient(135deg,${b[2]})">${b[3] ? `<i>${IC(b[3])}</i>` : ''}<div><b>${s ? SUBT[sub] : b[0]}</b><small>${s ? '' : b[1]}</small></div></div>` }
+    const dl = () => `<datalist id="cl">${S.custs.map(c => `<option value="${c.n}">`).join('')}</datalist><datalist id="pl">${S.prods.map(p => `<option value="${p.n}">`).join('')}</datalist>`;
+    const modeSel = id => `<select id="${id}">${MODES.map(m => `<option>${m}</option>`).join('')}</select>`;
+    function render() {
+      $('#nav').innerHTML = TABS.map(([k, i, n]) => `<button class="${tab === k ? 'on' : ''}" onclick="go('${k}')"><b>${i}</b>${n}</button>`).join('');
+      const v = { home, sale, pay, stock, sm, more }[tab]; $('#main').innerHTML = dl() + (tab === 'home' ? '' : banner()) + v(); if (tab === 'sale') autoO(1); if (tab === 'rep') rep();
+    }
+    function colls(day) { const P = S.pays.filter(p => p.d === day && live(p)); return { all: sum(P, p => p.a), by: Object.fromEntries(MODES.map(m => [m, sum(P.filter(p => p.m === m), p => p.a)])) } }
+    let hp = 'Today', h1 = td(), h2 = td(), hpP = 'All';
+    function hrange() {
+      const T = td(), d = new Date(), y = d.getFullYear(), m = d.getMonth(), k = (d.getDay() + 6) % 7;
+      if (hp === 'Today') return [T, T];
+      if (hp === 'Week') return [td(new Date(y, m, d.getDate() - k)), td(new Date(y, m, d.getDate() - k + 6))];
+      if (hp === '1 Month') return [td(new Date(y, m, 1)), td(new Date(y, m + 1, 0))];
+      if (hp === '1 Year') return [y + '-01-01', y + '-12-31'];
+      return [h1, h2]
+    }
+    function homeChart() {
+      const [f, t] = hrange(), sa = d => sum(S.sales.filter(s => s.d === d), s => s.t),
+        rate = p => { const l = S.sales.flatMap(s => s.items.filter(i => i.p === p)), q = sum(l, i => i.q); return q ? sum(l, i => i.a) / q : 0 },
+        rtd = d => Math.round(sum(S.rets.filter(r => r.d === d && r.t === 'Sellable'), r => r.q * rate(r.p))),
+        T5 = (() => { const a = [0, 0, 0, 0, 0]; (hpP === 'All' ? [...new Set(S.reg.map(x => x.p).filter(Boolean))] : [hpP]).forEach(pn => { const RR = regRows(pn), W = RR.filter(x => x.d >= f && x.d <= t && !x.ex), pre = RR.filter(x => x.d < f), po = W.length ? W[0].o : (pre.length ? pre[pre.length - 1].cl : OPEN0), pq = sum(W, x => x.ns), ps = sum(W, x => x.sa), pr = sum(W, x => x.rt); a[0] += po; a[1] += pq; a[2] += ps; a[3] += pr; a[4] += W.length ? W[W.length - 1].cl : po }); return a })(),
+        o = T5[0], ns = T5[1], s = T5[2], rt = T5[3], cl = T5[4], mx = Math.max(o, ns, s, rt, cl, 1);
+      return `<div class="card"><div class="chips">${['Today', 'Week', '1 Month', '1 Year', 'Custom'].map(k => `<button class="${hp === k ? 'on' : ''}" onclick="hp='${k}';render()">${k}</button>`).join('')}</div>${hp === 'Custom' ? `<div class="row"><div><label>From</label><input type="date" value="${h1}" onchange="h1=this.value;render()"></div><div><label>To</label><input type="date" value="${h2}" onchange="h2=this.value;render()"></div></div>` : ''}<div class="rg" style="margin-top:6px">${['All', 'Dettol', 'Dabur', 'Diaper'].map(m => `<label class="rd"><input type="radio" name="hpp" value="${m}" ${hpP === m ? 'checked' : ''} onchange="hpP='${m}';render()">${m}</label>`).join('')}</div><h2 style="margin-top:12px">Stock chart · ${hpP}</h2><p class="hint" style="margin:0">${f.split('-').reverse().join('/')}${f !== t ? ' to ' + t.split('-').reverse().join('/') : ''}</p><div class="chart">${[['Opening stock', o, 'var(--pri)'], ['New stock', ns, '#06B6D4'], ['Daily sales', s, 'var(--acc)'], ['Return stock', rt, 'var(--ok)'], ['Total closing stock', cl, 'var(--ink)']].map(([n, v, k]) => `<div class="cb"><b>${inr(v)}</b><div class="bw"><i style="height:${Math.max(2, v / mx * 100)}%;background:${k}"></i></div><span>${n}</span></div>`).join('')}</div></div>`
+    }
+    function home() {
+      const T = td(), c = collsR(), ts = sum(S.sales.filter(s => s.d === T), s => s.t), tot = sum(S.prods, p => p.s), out = sum(S.custs, x => Math.max(0, bal(x.id)));
+      const pend = S.custs.filter(x => bal(x.id) > 0).sort((a, b) => bal(b.id) - bal(a.id));
+      return `<div class="top"><div><small>${new Date().toDateString()}</small><h1>SSRSM Accounts</h1></div><button class="lo" onclick="logout()" aria-label="Logout">${IC('M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9')}Logout</button></div><div class="grid">
+<div style="grid-column:1/-1">${homeChart()}</div></div>
+<h2>Collection by mode · ${hp}</h2><div class="grid">${MODES.map(m => `<div class="stat md ${m}"><span>${m === 'Auto' ? 'Auto collection' : m}</span><b>${inr(c.by[m])}</b></div>`).join('')}</div>${smBox()}`
+    }
+    function smBox() {
+      const by = collsSm(), L = S.sm.filter(x => hpP === 'All' || x.p === hpP).map(x => ({ n: x.n, p: x.p, k: x.n + '|' + x.p })), ks = L.map(o => o.k);
+      Object.keys(by).filter(k => !ks.includes(k) && (by[k] || k.split('|')[0])).forEach(k => { const a = k.split('|'); L.push({ n: a[0] || 'Unassigned', p: a[1], k }) });
+      return `<h2>Collection by sales man · ${hp}</h2>` + (L.length ? `<div class="grid">${L.map(o => `<div class="stat md Auto"><span>${escH(o.n)}${o.p ? ' <small>(' + escH(o.p) + ')</small>' : ''}</span><b>${inr(by[o.k] || 0)}</b></div>`).join('')}</div>` : '<div class="card"><p class="hint" style="margin:0">Sales man tab me naam jodo, phir yaha collection dikhega.</p></div>')
+    }
+    function sale() {
+      const f = (l, id, m = 'decimal', ph = '') => `<label>${l}</label><input id="${id}" type="text" inputmode="${m}" autocomplete="off" placeholder="${ph}" oninput="calc()">`;
+      return `<div class="card"><label>Product</label><div class="rg">${['Dettol', 'Dabur', 'Diaper'].map(m => `<label class="rd"><input type="radio" name="pr" value="${m}" onchange="autoO(1);fillSm()">${m}</label>`).join('')}</div><label>Date</label><input id="fd" type="date" onclick="try{this.showPicker()}catch(e){}" onchange="autoO()"><p id="exh" class="hint" hidden style="margin:6px 0 0"></p><label>Opening Stock</label><input id="fo" type="text" inputmode="decimal" autocomplete="off" placeholder="Auto: previous closing stock" oninput="manO()">${f('Daily Sales', 'fs')}${f('Return Stock', 'fr')}${f('New Stock', 'fnw')}<label>Total Closing Stock (automatic)</label><input id="fcl" readonly>
+<h2>Collection</h2><p class="hint" style="margin:0">Tick one or more modes, then enter the amount for each.</p><div class="rg">${['Cash', 'Cheque', 'RTGS', 'Auto', 'Credit'].map(m => `<label class="rd"><input type="checkbox" name="cm" value="${m}" onchange="togCm('${m}',this.checked)">${m}</label>`).join('')}</div>${['Cash', 'Cheque', 'RTGS', 'Auto', 'Credit'].map(m => `<div class="ca" id="ca_${m}" hidden><label>${m} amount</label><input id="fc_${m}" type="text" inputmode="decimal" autocomplete="off" placeholder="₹ ${m}"></div>`).join('')}<label>Sales man</label><select id="fsm"><option value="">Select product first</option></select><label>Note (optional)</label><textarea id="fnote" rows="4" style="min-height:120px;font:inherit;resize:vertical"></textarea>
+<div style="height:14px"></div><button class="p" style="width:100%" onclick="saveReg()">Save entry</button></div>`}
+    let smP = 'Dettol', smEd = null, smDel = null;
+    function sm() {
+      const L = S.sm.map((x, i) => ({ x, i })).filter(o => o.x.p === smP);
+      const row = o => smEd === o.i ? `<div class="li" style="display:block"><label>Edit sales man name</label><input id="smen" value="${escH(o.x.n)}" autocomplete="off"><div class="row" style="margin-top:10px"><button onclick="smEd=null;render()">Cancel</button><button class="p" onclick="saveSm(${o.i})">Save name</button></div></div>` : `<div class="li"><span class="who"><i class="ini">${escH(o.x.n[0] || '?').toUpperCase()}</i><em>${escH(o.x.n)}<small>${o.x.p}</small></em></span><span style="display:flex;gap:8px"><button class="s" onclick="editSm(${o.i})">Edit</button>${smDel === o.i ? `<button class="s" style="color:var(--bad)" onclick="delSm(${o.i})">Confirm delete</button><button class="s" onclick="smDel=null;render()">Cancel</button>` : `<button class="s" onclick="askSmDel(${o.i})">Delete</button>`}</span></div>`;
+      return `<div class="card"><label>Product</label><div class="rg">${['Dettol', 'Dabur', 'Diaper'].map(m => `<label class="rd"><input type="radio" name="smp" value="${m}" ${smP === m ? 'checked' : ''} onchange="smP='${m}';smEd=null;smDel=null;render()">${m}</label>`).join('')}</div><label>New ${smP} sales man name</label><input id="smn" placeholder="e.g. Ramesh" autocomplete="off"><div style="height:12px"></div><button class="p" style="width:100%" onclick="addSm()">Add sales man to ${smP}</button></div><h2>${smP} sales man</h2><div class="card">${L.map(row).join('') || `<p class="hint" style="margin:0">${smP} me abhi koi sales man nahi hai.</p>`}</div>`
+    }
+    function addSm() { const n = $('#smn').value.trim(); if (!n) return toast('Enter sales man name'); if (S.sm.some(x => x.p === smP && x.n.toLowerCase() === n.toLowerCase())) return toast('This sales man already exists in ' + smP); S.sm.push({ n, p: smP }); save(); toast('Sales man added to ' + smP); render() }
+    function editSm(i) { smEd = i; smDel = null; render(); const el = $('#smen'); if (el) { el.focus(); el.select() } }
+    function saveSm(i) { const x = S.sm[i], n = $('#smen').value.trim(); if (!n) return toast('Enter sales man name'); if (S.sm.some((y, k) => k !== i && y.p === x.p && y.n.toLowerCase() === n.toLowerCase())) return toast('This sales man already exists in ' + x.p); const old = x.n; x.n = n; S.reg.forEach(e => { if (e.sm === old && e.p === x.p) e.sm = n }); smEd = null; save(); toast('Name updated'); render() }
+    function askSmDel(i) { smDel = i; smEd = null; render() }
+    function delSm(i) { S.sm.splice(i, 1); smDel = null; smEd = null; save(); toast('Sales man deleted'); render() }
+    function fillSm() { const sel = $('#fsm'); if (!sel) return; const pr = document.querySelector('input[name=pr]:checked'); sel.innerHTML = '<option value="">' + (pr ? 'Select sales man' : 'Select product first') + '</option>' + (pr ? S.sm.filter(x => x.p === pr.value).map(x => '<option>' + escH(x.n) + '</option>').join('') : '') }
+    function addLine() { const d = document.createElement('div'); d.className = 'row ln'; d.innerHTML = `<div style="flex:2"><label>Product</label><input class="lp" list="pl" placeholder="Search product"></div><div><label>Qty</label><input class="lq" type="number" inputmode="numeric"></div><div><label>Amount ₹</label><input class="la" type="number" inputmode="decimal"></div><button class="x" onclick="this.parentNode.remove();tot()">✕</button>`; d.oninput = tot; $('#lines').appendChild(d) }
+    function tot() { $('#st').value = inr(sum($$('.la'), i => +i.value || 0)) }
+    function saveSale() {
+      const c = S.custs[0];
+      const items = []; for (const r of $$('.ln')) { const p = prod(r.querySelector('.lp').value), q = +r.querySelector('.lq').value, a = +r.querySelector('.la').value; if (!p || !(q > 0) || !(a > 0)) return toast('Check every item row'); items.push({ p: p.id, q, a }) }
+      if (!items.length) return toast('Add at least one item');
+      const need = {}; items.forEach(i => need[i.p] = (need[i.p] || 0) + i.q);
+      for (const k in need) if (need[k] > pid(k).s) return toast('Only ' + pid(k).s + ' left of ' + pid(k).n);
+      const t = sum(items, i => i.a), paid = +$('#sp').value || 0; if (paid > t) return toast('Received is more than the total');
+      $('#sb').disabled = true; items.forEach(i => pid(i.p).s -= i.q);
+      S.sales.push({ id: uid(), d: td(), c: c.id, items, t, note: $('#sn').value });
+      if (paid > 0) { const m = $('#sm').value; S.pays.push({ id: uid(), d: td(), c: c.id, m, a: paid, st: m === 'Cheque' ? 'Pending' : 'Cleared' }) }
+      save(); toast('Sale saved'); go('home')
+    }
+    function pay() {
+      const T = td(), P = S.pays.filter(p => p.d === T).reverse(); return `<h1>Collect payment</h1><div class="card"><p id="ob" class="hint">Pending balance: ${inr(bal())}</p>
+<label>Amount received ₹</label><input id="pa" type="number" inputmode="decimal"><label>Mode</label>${modeSel('pm')}
+<div style="height:14px"></div><button class="p" style="width:100%" onclick="savePay()">Save payment</button></div>`}
+    function ob() { const c = cust($('#pc').value); $('#ob').textContent = c ? 'Pending balance: ' + inr(bal(c.id)) : '' }
+    function chq(i, s) { S.pays.find(p => p.id === i).st = s; save(); render(); toast('Cheque marked ' + s) }
+    function savePay() {
+      const c = S.custs[0], a = +$('#pa').value; if (!(a > 0)) return toast('Enter an amount');
+      if (a > bal(c.id) && !confirm('This is more than the pending ' + inr(bal(c.id)) + '. Save anyway?')) return;
+      const m = $('#pm').value; S.pays.push({ id: uid(), d: td(), c: c.id, m, a, st: m === 'Cheque' ? 'Pending' : 'Cleared' }); save(); toast('Payment saved'); render()
+    }
+    let cat = 'All';
+    function stock() {
+      const T = td(), L = S.prods.filter(p => cat === 'All' || p.c === cat);
+      return `<h1>Stock</h1>
+<div class="card wrap"><table><tr><th>Product</th><th>Open</th><th>Sold</th><th>Ret</th><th>Close</th></tr>${L.map(p => {
+        const so = sum(S.sales.filter(s => s.d === T), s => sum(s.items.filter(i => i.p === p.id), i => i.q)), rt = sum(S.rets.filter(r => r.d === T && r.p === p.id && r.t === 'Sellable'), r => r.q), ad = sum(S.adj.filter(a => a.d === T && a.p === p.id), a => a.q);
+        return `<tr><td>${p.n}</td><td>${p.s + so - rt - ad}</td><td>${so}</td><td>${rt}</td><td><b>${p.s}</b></td></tr>`
+      }).join('')}</table></div>
+<p class="hint">Close = Open − Sold + Sellable returns. Tomorrow’s opening is today’s closing automatically.</p>
+<h2>Return</h2><div class="card"><label>Product</label><input id="rp" list="pl"><label>Quantity</label><input id="rq" type="number" inputmode="numeric"><div style="height:14px"></div><button class="p" style="width:100%" onclick="saveRet()">Save return</button></div>`}
+    function saveRet() {
+      const c = S.custs[0], p = prod($('#rp').value), q = +$('#rq').value; if (!p || !(q > 0)) return toast('Pick product and quantity');
+      const t = 'Sellable'; p.s += q; S.rets.push({ id: uid(), d: td(), c: c.id, p: p.id, q, t }); save(); toast(t + ' return saved'); render()
+    }
+    function saveAdj() {
+      const p = prod($('#ap').value), q = +$('#aq').value; if (!p || !q) return toast('Pick product and quantity');
+      if (p.s + q < 0) return toast('Stock cannot go below zero'); p.s += q; S.adj.push({ id: uid(), d: td(), p: p.id, q }); save(); toast('Adjustment saved'); render()
+    }
+    function more() {
+      if (sub) return `<button onclick="go('more')" class="noprint">← Back</button>` + { prods: prodv, rep: repv }[sub]();
+      return `<h1>More</h1><div class="grid">${[].map(([k, n, d, g, p]) => `<button class="tile" style="background:linear-gradient(135deg,${g})" onclick="go('more','${k}')">${IC(p)}<b>${n}</b><small>${d}</small></button>`).join('')}</div>
+<p class="hint" style="margin-top:16px">Demo data goes back to the starting values every time you reopen the app. <a href="#" onclick="if(confirm('Reset all demo data?')){S=seed();save();go('home')}return false">Reset demo data</a></p>`}
+    function custv() {
+      return `<h1>Customers</h1><div class="card"><div class="row"><div style="flex:2"><label>New shop name</label><input id="nn"></div><div><label>Phone</label><input id="np" inputmode="tel"></div></div><div style="height:12px"></div><button class="p" onclick="addC()">Add shop</button></div>
+<div class="card">${S.custs.map(c => `<div class="li" onclick="led('${c.id}')" style="cursor:pointer"><span class="who"><i class="ini">${c.n[0]}</i><em>${c.n}<small>${c.ph || ''}</small></em></span><b class="${bal(c.id) > 0 ? 'acc' : 'ok'}">${bal(c.id) > 0 ? inr(bal(c.id)) + ' due' : 'Clear'}</b></div>`).join('')}</div><div id="led"></div>`
+    }
+    function addC() { const n = $('#nn').value.trim(); if (!n || cust(n)) return toast('Enter a new shop name'); S.custs.push({ id: uid(), n, ph: $('#np').value }); save(); render() }
+    function led(i) {
+      const c = cid(i), E = [...S.sales.filter(s => s.c === i).map(s => ({ d: s.d, t: 'Sale', a: s.t, x: s.items.map(z => pid(z.p).n + ' ×' + z.q).join(', ') })), ...S.pays.filter(p => p.c === i).map(p => ({ d: p.d, t: p.m + (p.st !== 'Cleared' ? ' (' + p.st + ')' : ''), a: -(live(p) ? p.a : 0), x: 'Payment' }))].sort((a, b) => a.d < b.d ? -1 : 1);
+      $('#led').innerHTML = `<h2>${c.n} — ledger</h2><div class="card">${E.map(e => `<div class="li"><span>${e.t}<small>${e.d} · ${e.x}</small></span><b class="${e.a < 0 ? 'ok' : ''}">${e.a < 0 ? '−' : ''}${inr(Math.abs(e.a))}</b></div>`).join('')}<div class="li"><b>Pending</b><b class="acc">${inr(bal(i))}</b></div></div>`; $('#led').scrollIntoView()
+    }
+    function prods() {
+      return `<h1>Products & categories</h1><div class="card"><div class="row"><div><label>New category</label><input id="nc"></div><button class="p" onclick="addCat()">Add</button></div></div>
+<div class="card"><label>New product</label><input id="npn"><div class="row"><div><label>Category</label><select id="npc">${S.cats.map(k => `<option>${k}</option>`).join('')}</select></div><div><label>Opening stock</label><input id="nps" type="number" inputmode="numeric" value="0"></div></div><div style="height:12px"></div><button class="p" onclick="addP()">Add product</button></div>
+<div class="card">${S.prods.map(p => `<div class="li"><span>${p.n}<small>${p.c}</small></span><b>${p.s}</b></div>`).join('')}</div>`
+    }
+    function addCat() { const n = $('#nc').value.trim(); if (!n || S.cats.includes(n)) return toast('Enter a new category'); S.cats.push(n); save(); render() }
+    function addP() { const n = $('#npn').value.trim(); if (!n || prod(n)) return toast('Enter a new product name'); S.prods.push({ id: uid(), n, c: $('#npc').value, s: Math.max(0, +$('#nps').value || 0), d: 0 }); save(); render() }
+    let per = 'Daily', a1 = td(), a2 = td();
+    function range() {
+      const d = new Date(a1 + 'T00:00'), y = d.getFullYear(), m = d.getMonth();
+      if (per === 'Daily') return [a1, a1]; if (per === 'Monthly') return [td(new Date(y, m, 1)), td(new Date(y, m + 1, 0))];
+      if (per === 'Quarterly') { const q = Math.floor(m / 3) * 3; return [td(new Date(y, q, 1)), td(new Date(y, q + 3, 0))] }
+      if (per === 'Yearly') return [y + '-01-01', y + '-12-31']; return [a1, a2]
+    }
+    function repv() {
+      return `<h1>Reports</h1><div class="card noprint"><div class="chips">${['Daily', 'Monthly', 'Quarterly', 'Yearly', 'Custom'].map(k => `<button class="${per === k ? 'on' : ''}" onclick="per='${k}';go('more','rep')">${k}</button>`).join('')}</div>
+<div class="row"><div><label>${per === 'Custom' ? 'From' : 'Date'}</label><input type="date" value="${a1}" onchange="a1=this.value;go('more','rep')"></div>${per === 'Custom' ? `<div><label>To</label><input type="date" value="${a2}" onchange="a2=this.value;go('more','rep')"></div>` : ''}</div>
+<label>Opening stock value on the first day (₹)</label><input type="number" inputmode="decimal" value="${OPEN0}" onchange="OPEN0=+this.value||0;go('more','rep')"><p class="hint" style="margin:6px 0 0">This is the opening stock of the first entry date (${(() => { const d = [...S.sales, ...S.pays, ...S.rets].map(x => x.d).sort()[0]; return d ? d.split('-').reverse().join('/') : '-' })()}). Every next day opens with the previous day’s closing.</p><div style="height:12px"></div><button class="p" onclick="makePdf()">Download PDF</button><div style="height:8px"></div><button onclick="printIt()">Print</button></div><div id="rg"></div>`
+    }
+    function regRows(pf) {
+      let p = OPEN0, cnt = 0, last = null; return S.reg.filter(e => pf === undefined || e.p === pf).sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : (a.ex ? 1 : 0) - (b.ex ? 1 : 0)).map(e => {
+        const b = { id: e.id, d: e.d, p: e.p, c: e.c || 0, q: e.q || 0, g: e.g || 0, a: e.a || 0, cr: e.cr || 0, note: e.note || '', sm: e.sm || '' };
+        if (e.ex && last && last.d === e.d && last.p === e.p) return { ...b, no: last.no, o: last.o, ns: last.ns, sa: last.sa, rt: last.rt, cl: last.cl, ex: true };
+        const o = e.o != null ? e.o : p, cl = Math.round((o + (e.n || 0) - e.s + e.r) * 100) / 100; cnt++; const x = { ...b, no: e.no || cnt, o, ns: e.n || 0, sa: e.s, rt: e.r, cl, ex: false }; p = cl; last = x; return x
+      })
+    }
+    const nv = id => +String($('#' + id).value).replace(/,/g, '') || 0, defO = () => { const pr = document.querySelector('input[name=pr]:checked'), R = pr ? regRows(pr.value) : []; return R.length ? R[R.length - 1].cl : 0 };
+    function exFill() {
+      const h = $('#exh'); if (!h) return false; const pr = document.querySelector('input[name=pr]:checked'), d = $('#fd').value, P = pr && d ? regRows(pr.value).find(x => x.d === d && !x.ex) : null, ids = ['fo', 'fs', 'fr', 'fnw'];
+      if (P) { const n = v => v ? (Math.round(v * 100) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : ''; $('#fo').value = n(P.o) || '0'; $('#fs').value = n(P.sa); $('#fr').value = n(P.rt); $('#fnw').value = n(P.ns); $('#fcl').value = n(P.cl) || '0'; ids.forEach(i => $('#' + i).readOnly = true); h.hidden = false; h.textContent = 'Is date ka stock pehli entry se auto bhar gaya. Ab sirf sales man, collection aur note bharo.'; h.dataset.on = '1'; return true }
+      if (h.dataset.on === '1') { ids.forEach(i => { $('#' + i).value = ''; $('#' + i).readOnly = false }); $('#fo').dataset.m = ''; $('#fcl').value = ''; h.dataset.on = '' }
+      h.hidden = true; return false
+    }
+    function autoO(force) {
+      const fo = $('#fo'); if (!fo) return; if (exFill()) return; if (force) fo.dataset.m = ''; if (fo.dataset.m === '1') return;
+      const pr = document.querySelector('input[name=pr]:checked'), d = $('#fd').value, R = pr ? regRows(pr.value).filter(x => !d || x.d < d) : [];
+      fo.value = R.length ? R[R.length - 1].cl.toLocaleString('en-IN') : ''; calc()
+    }
+    function manO() { const fo = $('#fo'); fo.dataset.m = fo.value.trim() === '' ? '' : '1'; calc() }
+    function calc() { const any = ['fo', 'fs', 'fr', 'fnw'].some(i => $('#' + i).value.trim() !== ''), o = nv('fo'); $('#fcl').value = any ? (Math.round((o + nv('fnw') - nv('fs') + nv('fr')) * 100) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '' }
+    function togCm(m, on) { const b = $('#ca_' + m); b.hidden = !on; if (on) $('#fc_' + m).focus(); else $('#fc_' + m).value = '' }
+    function saveReg() {
+      const d = $('#fd').value; if (!d) return toast('Pick a date');
+      const pr0 = document.querySelector('input[name=pr]:checked'); if (!pr0) return toast('Select a product');
+      const ex = S.reg.some(x => x.d === d && x.p === pr0.value);
+      const e = { id: uid(), d, s: ex ? 0 : nv('fs'), r: ex ? 0 : nv('fr'), n: nv('fnw') * (ex ? 0 : 1), c: 0, q: 0, g: 0, a: 0, cr: 0 }, KM = { Cash: 'c', Cheque: 'q', RTGS: 'g', Auto: 'a', Credit: 'cr' }, ch = $$('input[name=cm]:checked').map(x => x.value);
+      for (const m of ch) { const v = nv('fc_' + m); if (v < 0) return toast('Amounts cannot be negative'); if (!(v > 0)) return toast('Enter the ' + m + ' amount'); e[KM[m]] = v }
+      const nt = $('#fnote').value.trim(); if (nt) e.note = nt; const smv = $('#fsm').value; if (smv) e.sm = smv; if (ex) { e.ex = true; if (!e.sm && !e.c && !e.q && !e.g && !e.a && !e.cr && !e.note) return toast('Enter sales man, collection or note') } if (!ex && $('#fo').dataset.m === '1') e.o = nv('fo'); const pr = document.querySelector('input[name=pr]:checked'); if (pr) e.p = pr.value;
+      if ([e.s, e.r, e.n, e.o || 0].some(v => v < 0)) return toast('Amounts cannot be negative');
+      S.reg.push(e); if (regRows(e.p).some(x => x.cl < 0)) { S.reg.pop(); return toast('Sales is more than the stock available') }
+      fP = e.p; edD = null; delD = null; edF = ''; save(); toast('Entry saved'); go('stock')
+    }
+    function colls(day) { const e = S.reg.find(x => x.d === day) || {}, by = { Cash: e.c || 0, RTGS: e.g || 0, Cheque: e.q || 0, Auto: e.a || 0, Credit: e.cr || 0 }; return { all: by.Cash + by.RTGS + by.Cheque + by.Auto, by } }
+    function stockOld() {
+      const R = regRows(), dm = d => d.split('-').reverse().join('/'), n = v => (Math.round(v * 100) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 }), c = v => v ? n(v) : '', esc = s => String(s).replace(/[&<>]/g, h => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[h]));
+      return `<div class="card wrap"><table class="regt"><thead><tr><th rowspan="2">S.No.</th><th rowspan="2">Date</th><th rowspan="2">Opening<br>Stock</th><th rowspan="2">New<br>Stock</th><th rowspan="2">Daily<br>Sales</th><th rowspan="2">Return<br>Stock</th><th rowspan="2">Total Closing<br>Stock</th><th colspan="5">Collection</th><th rowspan="2">Note</th></tr><tr><th>Cash</th><th>Cheque</th><th>RTGS</th><th>Auto</th><th>Credit</th></tr></thead><tbody>${R.map(x => `<tr><td>${x.no}.</td><td>${dm(x.d)}</td><td>${n(x.o)}</td><td>${c(x.ns)}</td><td>${n(x.sa)}</td><td>${c(x.rt)}</td><td>${n(x.cl)}</td><td>${c(x.c)}</td><td>${c(x.q)}</td><td>${c(x.g)}</td><td>${c(x.a)}</td><td>${c(x.cr)}</td><td class="nt">${esc(x.note)}</td></tr>`).join('') || '<tr><td colspan="13" style="text-align:center">No entries yet</td></tr>'}</tbody></table></div>`
+    }
+    let fM = 'Today', fF = '', fT = '';
+    function setM(k) { fM = k; if (k === 'Custom') { if (!fF) fF = td(); if (!fT) fT = td() } render() }
+    function stock() {
+      const dm = d => d.split('-').reverse().join('/'), n = v => (Math.round(v * 100) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 }), c = v => v ? n(v) : '', esc = s => String(s).replace(/[&<>]/g, h => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[h]));
+      let lo = '', hi = '';
+      const _d = new Date(), _y = _d.getFullYear(), _m = _d.getMonth(), _k = (_d.getDay() + 6) % 7; hi = td(); if (fM === 'Today') lo = hi; else if (fM === 'Week') { lo = td(new Date(_y, _m, _d.getDate() - _k)); hi = td(new Date(_y, _m, _d.getDate() - _k + 6)) } else if (fM === 'Month') { lo = td(new Date(_y, _m, 1)); hi = td(new Date(_y, _m + 1, 0)) } else if (fM === 'Year') { lo = _y + '-01-01'; hi = _y + '-12-31' } else { lo = fF; hi = fT; if (lo && hi && lo > hi) [lo, hi] = [hi, lo] }
+      const R = regRows(fP).filter(x => (!lo || x.d >= lo) && (!hi || x.d <= hi)), T = k => sum(R, x => (['o', 'ns', 'sa', 'rt', 'cl'].includes(k) && x.ex ? 0 : x[k])),
+        label = lo && hi ? (lo === hi ? dm(lo) : dm(lo) + ' to ' + dm(hi)) : hi ? 'Up to ' + dm(hi) : lo ? 'From ' + dm(lo) : 'All entries',
+        chips = [['Today', 'Today'], ['Week', 'Week'], ['Month', 'Month'], ['Year', 'Year'], ['Custom', 'Custom']].map(([k, t]) => `<button class="${fM === k ? 'on' : ''}" onclick="setM('${k}')">${t}</button>`).join(''),
+        inp = fM === 'Custom' ? `<div class="row"><div><label>From</label><input type="date" value="${fF}" onchange="fF=this.value;render()"></div><div><label>To</label><input type="date" value="${fT}" onchange="fT=this.value;render()"></div></div>` : '';
+      REG = { R, label, title: 'SSRSM Register (' + fP + ')' };
+      return `<div class="card noprint"><h2>1. Choose entries</h2><div class="chips">${chips}</div>${inp}<p class="hint">Showing: <b>${label}</b> · ${R.length} ${R.length === 1 ? 'entry' : 'entries'}</p></div>
+<div class="card noprint"><h2>Which register?</h2><div class="rg">${['Dettol', 'Dabur', 'Diaper'].map(m => `<label class="rd"><input type="radio" name="fp" value="${m}" ${fP === m ? 'checked' : ''} onchange="setP('${m}')">${m}</label>`).join('')}</div></div>
+<div class="rgt" style="margin-top:4px">${esc(REG.title)}</div><div class="rgs">${label}</div>
+<div class="card wrap"><table class="regt"><thead><tr><th rowspan="2">S.No.</th><th rowspan="2">Date</th><th rowspan="2">Opening<br>Stock</th><th rowspan="2">New<br>Stock</th><th rowspan="2">Daily<br>Sales</th><th rowspan="2">Return<br>Stock</th><th rowspan="2">Total Closing<br>Stock</th><th colspan="6">Collection</th><th rowspan="2">Note</th></tr><tr><th>Cash</th><th>Cheque</th><th>RTGS</th><th>Auto</th><th>Credit</th><th>Sales man</th></tr></thead><tbody>${R.map(x => `<tr${x.ex ? ' class="grp"' : ''}><td>${x.ex ? '' : x.no + '.'}</td><td>${dm(x.d)}</td><td>${n(x.o)}</td><td>${c(x.ns)}</td><td>${n(x.sa)}</td><td>${c(x.rt)}</td><td>${n(x.cl)}</td><td>${c(x.c)}</td><td>${c(x.q)}</td><td>${c(x.g)}</td><td>${c(x.a)}</td><td>${c(x.cr)}</td><td class="sm">${esc(x.sm || '')}</td><td class="nt">${esc(x.note)}</td></tr>`).join('') || '<tr><td colspan="14" style="text-align:left">No entries for this selection</td></tr>'}</tbody>${R.length ? `<tfoot><tr><td colspan="2">Total</td><td>${n(T('o'))}</td><td>${n(T('ns'))}</td><td>${n(T('sa'))}</td><td>${n(T('rt'))}</td><td>${n(T('cl'))}</td><td>${n(T('c'))}</td><td>${n(T('q'))}</td><td>${n(T('g'))}</td><td>${n(T('a'))}</td><td>${n(T('cr'))}</td><td></td><td></td></tr></tfoot>` : ''}</table><div class="po">Printed on ${dm(td())}</div></div>
+${editCard(R)}<div class="card noprint"><h2>2. Preview, print or download</h2><button style="min-height:54px;width:100%;margin-bottom:8px" onclick="previewReg()">Preview</button><div class="row"><button style="min-height:54px" onclick="printIt()">Print</button><button class="p" style="min-height:54px" onclick="makePdf()">Download PDF</button></div><p class="hint">Print and PDF contain only the entries shown above.</p><div id="pdfl"></div></div>`
+    }
+    let edD = null, delD = null, fP = 'Dettol';
+    function setP(m) { fP = m; edD = null; delD = null; edF = ''; render() }
+    function editE(d) { edD = d; delD = null; render(); const el = document.getElementById('edf'); if (el && el.scrollIntoView) el.scrollIntoView() }
+    function cancelE() { edD = null; render() }
+    function askDel(d) { delD = d; edD = null; render() }
+    function delE(id) { const ent = S.reg.find(x => x.id === id); if (ent && !ent.ex) { const nx = S.reg.find(y => y !== ent && y.ex && y.d === ent.d && y.p === ent.p); if (nx) { nx.s = ent.s; nx.r = ent.r; nx.n = ent.n; if (ent.o != null) nx.o = ent.o; delete nx.ex } } S.reg = S.reg.filter(x => x.id !== id); delD = null; edD = null; save(); const bad = regRows(fP).some(x => x.cl < 0); toast(bad ? 'Entry deleted. Check later entries: stock is now negative.' : 'Entry deleted'); render() }
+    function saveE() {
+      const old = S.reg.find(x => x.id === edD); if (!old) return;
+      const d = $('#ed').value; if (!d) return toast('Pick a date');
+      if (d !== old.d && !old.ex && S.reg.some(x => x.d === d && x.p === old.p && !x.ex)) return toast('An entry for this date already exists');
+      const e = { d, s: nv('es'), r: nv('er'), n: nv('enw'), c: nv('ec'), q: nv('eq'), g: nv('eg'), a: nv('ea'), cr: nv('ecr') }, nt = $('#enote').value.trim();
+      e.id = old.id; if (old.ex) e.ex = true; if (old.p) e.p = old.p; if (nt) e.note = nt; const sv = $('#esm').value; if (sv) e.sm = sv; if ($('#eo').value.trim() !== '') e.o = nv('eo'); if ($('#en0').value.trim() !== '') e.no = +$('#en0').value || undefined;
+      if ([e.s, e.r, e.n, e.c, e.q, e.g, e.a, e.cr, e.o || 0].some(v => v < 0)) return toast('Amounts cannot be negative');
+      const i = S.reg.indexOf(old); S.reg[i] = e;
+      if (regRows(fP).some(x => x.cl < 0)) { S.reg[i] = old; return toast('Sales is more than the stock available') }
+      edD = null; save(); toast('Entry updated'); render()
+    }
+    let edF = '';
+    function editCard(R) {
+      const dm = d => d.split('-').reverse().join('/'), n = v => (Math.round(v * 100) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 }), esc = s => String(s).replace(/[&<>]/g, h => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[h])),
+        L = edF ? regRows(fP).filter(x => x.d === edF) : R, o = edD && S.reg.find(x => x.id === edD),
+        fld = (l, id, v, ph) => '<div><label>' + l + '</label><input id="' + id + '" type="text" inputmode="decimal" autocomplete="off" placeholder="' + (ph || '') + '" value="' + (v == null ? '' : v) + '"></div>',
+        find = '<label>Find entry by date</label><div class="row"><input id="edq" type="date" value="' + edF + '" onchange="edF=this.value;edD=null;delD=null;render()"><button class="s" style="flex:0 0 auto;min-height:48px" onclick="edF=\'\';edD=null;delD=null;render()">Clear</button></div><div style="height:8px"></div>',
+        form = o ? '<div id="edf" class="ln" style="display:block"><h2>Edit entry · ' + dm(o.d) + '</h2><div class="rg">' + fld('S.No. (optional)', 'en0', o.no, 'Auto') + '<div><label>Date</label><input id="ed" type="date" value="' + o.d + '"></div>' + fld('Opening Stock', 'eo', o.o, 'Auto') + fld('Daily Sales', 'es', o.s) + fld('Return Stock', 'er', o.r) + fld('New Stock', 'enw', o.n || '') + fld('Cash', 'ec', o.c || '') + fld('Cheque', 'eq', o.q || '') + fld('RTGS', 'eg', o.g || '') + fld('Auto', 'ea', o.a || '') + fld('Credit', 'ecr', o.cr || '') + '<div><label>Sales man</label><select id="esm"><option value="">None</option>' + [...new Set([...S.sm.filter(x => x.p === fP).map(x => x.n), o.sm].filter(Boolean))].map(n => '<option' + (o.sm === n ? ' selected' : '') + '>' + escH(n) + '</option>').join('') + '</select></div></div><label>Note (optional)</label><textarea id="enote" rows="3" style="min-height:90px;font:inherit;resize:vertical">' + esc(o.note || '') + '</textarea><div class="row" style="margin-top:12px"><button onclick="cancelE()">Cancel</button><button class="p" onclick="saveE()">Save changes</button></div></div>' : '',
+        list = L.length ? L.map(x => '<div class="li"><span>' + x.no + '. · ' + dm(x.d) + '<small>' + (x.ex ? 'Same-day extra · ' : '') + (x.p ? x.p + ' · ' : '') + (x.sm ? escH(x.sm) + ' · ' : '') + 'Sales ' + n(x.sa) + ' · Closing ' + n(x.cl) + '</small></span><span style="display:flex;gap:8px"><button class="s" onclick="editE(\'' + x.id + '\')">Edit</button>' + (delD === x.id ? '<button class="s" style="color:var(--bad)" onclick="delE(\'' + x.id + '\')">Confirm delete</button><button class="s" onclick="delD=null;render()">Cancel</button>' : '<button class="s" onclick="askDel(\'' + x.id + '\')">Delete</button>') + '</span></div>').join('') : '<p class="hint">' + (edF ? 'No entry on ' + dm(edF) + '.' : 'No entries in this selection.') + '</p>';
+      return '<div class="card noprint"><h2>Edit or delete entries</h2>' + find + form + list + '</div>\n'
+    }
+    function collsSm() { const [f, t] = hrange(), by = {}; S.reg.filter(x => x.d >= f && x.d <= t && (hpP === 'All' || x.p === hpP)).forEach(e => { const k = (e.sm || '') + '|' + (e.p || ''); by[k] = (by[k] || 0) + (e.c || 0) + (e.q || 0) + (e.g || 0) + (e.a || 0) }); return by }
+    function collsR() { const [f, t] = hrange(), by = { Cash: 0, RTGS: 0, Cheque: 0, Auto: 0, Credit: 0 }; S.reg.filter(x => x.d >= f && x.d <= t && (hpP === 'All' || x.p === hpP)).forEach(e => { by.Cash += e.c || 0; by.RTGS += e.g || 0; by.Cheque += e.q || 0; by.Auto += e.a || 0; by.Credit += e.cr || 0 }); return { all: by.Cash + by.RTGS + by.Cheque + by.Auto, by } }
+    let REG = { R: [], f: '', t: '' };
+    function rtitle(R) { const u = [...new Set(R.map(x => x.p).filter(Boolean))]; return 'SSRSM Register' + (u.length ? ' (' + u.join(', ') + ')' : '') }
+    function mkPdf(R, label, title) {
+      const W = 842, H = 595, M = 28, cw = [28, 54, 56, 50, 52, 50, 64, 50, 50, 50, 50, 50, 62]; cw.push(W - 2 * M - cw.reduce((a, b) => a + b, 0));
+      const X = [M]; cw.forEach((w, i) => X.push(X[i] + w));
+      const dm = d => d.split('-').reverse().join('/'), n = v => (Math.round(v * 100) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 }), c = v => v ? n(v) : '', T = k => R.reduce((a, x) => a + (['o', 'ns', 'sa', 'rt', 'cl'].includes(k) && x.ex ? 0 : x[k]), 0);
+      const san = s => String(s == null ? '' : s).replace(/[\r\n\t]+/g, ' ').replace(/[^\x20-\x7E]/g, '?');
+      const esc = s => s.replace(/([()\\])/g, '\\$1');
+      const cwid = ch => /[0-9]/.test(ch) ? .556 : /[,. :\/'!|]/.test(ch) ? .278 : /[-()]/.test(ch) ? .333 : /[ilIjtfr]/.test(ch) ? .3 : /[mwMW]/.test(ch) ? .8 : /[A-Z]/.test(ch) ? .68 : .55;
+      const tw = (s, z) => [...s].reduce((a, ch) => a + cwid(ch), 0) * z;
+      let pages = [], cur = '', y = 0;
+      const rect = (x, yb, w, h) => { cur += x.toFixed(1) + ' ' + yb.toFixed(1) + ' ' + w.toFixed(1) + ' ' + h.toFixed(1) + ' re S\n' };
+      const text = (s, x, yy, z, b, al) => { s = san(s); const w = tw(s, z), px = al === 'r' ? x - w : al === 'c' ? x - w / 2 : x; cur += 'BT /F' + (b ? 2 : 1) + ' ' + z + ' Tf ' + px.toFixed(1) + ' ' + yy.toFixed(1) + ' Td (' + esc(s) + ') Tj ET\n' };
+      const head = () => {
+        const h = 34, L = [['S.No.'], ['Date'], ['Opening', 'Stock'], ['New', 'Stock'], ['Daily', 'Sales'], ['Return', 'Stock'], ['Total Closing', 'Stock']];
+        L.forEach((ls, i) => { rect(X[i], y - h, cw[i], h); ls.forEach((t, j) => text(t, X[i] + cw[i] / 2, ls.length === 1 ? y - 20 : y - 15 - j * 11, 8.5, 1, 'c')) });
+        rect(X[7], y - 17, X[13] - X[7], 17); text('Collection', (X[7] + X[13]) / 2, y - 12, 8.5, 1, 'c');
+        ['Cash', 'Cheque', 'RTGS', 'Auto', 'Credit', 'Sales man'].forEach((t, j) => { rect(X[7 + j], y - h, cw[7 + j], 17); text(t, X[7 + j] + cw[7 + j] / 2, y - 29, 8.5, 1, 'c') });
+        rect(X[13], y - h, cw[13], h); text('Note', X[13] + cw[13] / 2, y - 20, 8.5, 1, 'c'); y -= h
+      };
+      const np = first => { if (cur) pages.push(cur); cur = '0.6 w 0.12 0.18 0.56 RG 0 g\n'; y = H - M; if (first) { text(title || 'SSRSM Register', W / 2, y - 12, 16, 1, 'c'); text(label, W / 2, y - 28, 10, 0, 'c'); y -= 42 } head() };
+      const mx = cw[13] - 8;
+      const wrap = s => { const out = []; let l = ''; for (let w of san(s).split(' ')) { if (!w) continue; while (tw(w, 8) > mx) { let k = 1; while (k < w.length && tw(w.slice(0, k + 1), 8) <= mx) k++; if (l) { out.push(l); l = '' } out.push(w.slice(0, k)); w = w.slice(k) } const t = l ? l + ' ' + w : w; if (l && tw(t, 8) > mx) { out.push(l); l = w } else l = t } if (l) out.push(l); return out };
+      np(true);
+      R.forEach((x, i) => {
+        const ls = wrap(x.note), rh = Math.max(20, ls.length * 10 + 8);
+        if (y - rh < 40) np(false);
+        if (x.ex) cur += '1 0.965 0.87 rg ' + X[0].toFixed(1) + ' ' + (y - rh).toFixed(1) + ' ' + (X[13] + cw[13] - X[0]).toFixed(1) + ' ' + rh.toFixed(1) + ' re f 0 g\n';
+        const v = [x.ex ? '' : (x.no || i + 1) + '.', dm(x.d), n(x.o), c(x.ns), n(x.sa), c(x.rt), n(x.cl), c(x.c), c(x.q), c(x.g), c(x.a), c(x.cr), x.sm || ''];
+        v.forEach((t, j) => { rect(X[j], y - rh, cw[j], rh); if (j === 12) { t = san(t); while (t.length > 1 && tw(t, 9) > cw[12] - 8) t = t.slice(0, -1); if (t) text(t, X[12] + 4, y - rh / 2 - 3, 9, 0, 'l') } else if (t) text(t, j < 2 ? X[j] + cw[j] / 2 : X[j] + cw[j] - 4, y - rh / 2 - 3, 9, 0, j < 2 ? 'c' : 'r') });
+        rect(X[13], y - rh, cw[13], rh); ls.forEach((t, j) => text(t, X[13] + 4, y - 12 - j * 10, 8, 0, 'l'));
+        y -= rh
+      });
+      {
+        const rh = 22; if (y - rh < 40) np(false);
+        rect(X[0], y - rh, X[2] - X[0], rh); text('Total', (X[0] + X[2]) / 2, y - 15, 9, 1, 'c');
+        [n(T('o')), n(T('ns')), n(T('sa')), n(T('rt')), n(T('cl')), n(T('c')), n(T('q')), n(T('g')), n(T('a')), n(T('cr'))].forEach((t, k) => { const j = k + 2; rect(X[j], y - rh, cw[j], rh); text(t, X[j] + cw[j] - 4, y - 15, 9, 1, 'r') });
+        rect(X[12], y - rh, cw[12], rh); rect(X[13], y - rh, cw[13], rh); y -= rh
+      }
+      pages.push(cur); const N = pages.length;
+      pages = pages.map((p, i) => p + 'BT /F1 8 Tf ' + (W / 2 - 20) + ' 16 Td (Page ' + (i + 1) + ' of ' + N + ') Tj ET\n');
+      const objs = ['<</Type/Catalog/Pages 2 0 R>>', '<</Type/Pages/Kids[' + pages.map((_, i) => (5 + 2 * i) + ' 0 R').join(' ') + ']/Count ' + N + '>>', '<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>', '<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>'];
+      pages.forEach((p, i) => { objs.push('<</Type/Page/Parent 2 0 R/MediaBox[0 0 ' + W + ' ' + H + ']/Resources<</Font<</F1 3 0 R/F2 4 0 R>>>>/Contents ' + (6 + 2 * i) + ' 0 R>>'); objs.push('<</Length ' + p.length + '>>\nstream\n' + p + 'endstream') });
+      let out = '%PDF-1.4\n'; const off = []; objs.forEach((o, i) => { off.push(out.length); out += (i + 1) + ' 0 obj\n' + o + '\nendobj\n' });
+      const xp = out.length; out += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n' + off.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('') + 'trailer\n<</Size ' + (objs.length + 1) + '/Root 1 0 R>>\nstartxref\n' + xp + '\n%%EOF';
+      return new Blob([Uint8Array.from(out, ch => ch.charCodeAt(0))], { type: 'application/pdf' })
+    }
+    async function makePdf(forPrint) {
+      try {
+        const { R, f, t, label } = REG; if (!R.length) return toast('No entries in this selection');
+        const dm = d => d.split('-').reverse().join('/'), lb = label || (dm(f) + (f !== t ? ' to ' + dm(t) : '')), blob = mkPdf(R, lb, REG.title),
+          name = (REG.title || 'SSRSM Register').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') + (lb !== 'All entries' ? '-' + lb.replace(/\//g, '-').replace(/\s+/g, '_') : '-All') + '.pdf';
+        let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null } catch (e) { }
+        if (dl) { try { await dl.save({ filename: name, data: blob }); toast(forPrint ? 'PDF saved. Open it to print.' : 'PDF saved') } catch (e) { toast(e && e.code === 'declined' ? 'Download cancelled' : 'PDF could not be saved (' + ((e && e.code) || 'error') + ')') } return }
+        const url = URL.createObjectURL(blob), box = $('#pdfl');
+        if (box) box.innerHTML = '<a href="' + url + '" download="' + name + '" target="_blank" style="display:block;margin-top:10px;font-weight:600;color:var(--pri)">If the PDF did not download, tap here to open it: ' + name + '</a>';
+        const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast('PDF downloading: ' + name)
+      } catch (e) { toast('PDF error: ' + (e && e.message ? e.message : e)) }
+    }
+    function previewReg() {
+      const { R, label, title } = REG; if (!R.length) return toast('No entries in this selection');
+      const dm = d => d.split('-').reverse().join('/'), n = v => (Math.round(v * 100) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 }), c = v => v ? n(v) : '', T = k => sum(R, x => (['o', 'ns', 'sa', 'rt', 'cl'].includes(k) && x.ex ? 0 : x[k])), esc = s => String(s).replace(/[&<>]/g, h => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[h]));
+      const rows = R.map((x, i) => `<tr${x.ex ? ' class="grp"' : ''}><td>${x.ex ? '' : (x.no || i + 1) + '.'}</td><td>${dm(x.d)}</td><td>${n(x.o)}</td><td>${c(x.ns)}</td><td>${n(x.sa)}</td><td>${c(x.rt)}</td><td>${n(x.cl)}</td><td>${c(x.c)}</td><td>${c(x.q)}</td><td>${c(x.g)}</td><td>${c(x.a)}</td><td>${c(x.cr)}</td><td class="sm">${esc(x.sm || '')}</td><td class="nt">${esc(x.note)}</td></tr>`).join('');
+      const foot = `<tfoot><tr><td colspan="2">Total</td><td>${n(T('o'))}</td><td>${n(T('ns'))}</td><td>${n(T('sa'))}</td><td>${n(T('rt'))}</td><td>${n(T('cl'))}</td><td>${n(T('c'))}</td><td>${n(T('q'))}</td><td>${n(T('g'))}</td><td>${n(T('a'))}</td><td>${n(T('cr'))}</td><td></td><td></td></tr></tfoot>`;
+      closePv(); const v = document.createElement('div'); v.id = 'pv';
+      v.innerHTML = `<div class="pvt"><b>Preview</b><button class="s" onclick="closePv()">Close</button><button class="s" onclick="printIt()">Print</button><button class="s p" onclick="makePdf()">Download PDF</button></div><div class="pvb"><div class="paper"><h3>${esc(title)}</h3><p>${label}</p><table><thead><tr><th rowspan="2">S.No.</th><th rowspan="2">Date</th><th rowspan="2">Opening<br>Stock</th><th rowspan="2">New<br>Stock</th><th rowspan="2">Daily<br>Sales</th><th rowspan="2">Return<br>Stock</th><th rowspan="2">Total Closing<br>Stock</th><th colspan="6">Collection</th><th rowspan="2">Note</th></tr><tr><th>Cash</th><th>Cheque</th><th>RTGS</th><th>Auto</th><th>Credit</th><th>Sales man</th></tr></thead><tbody>${rows}</tbody>${foot}</table></div></div>`;
+      document.body.appendChild(v)
+    }
+    function closePv() { const v = $('#pv'); if (v) v.remove() }
+    function printIt() { if (window.claude && window.claude.use) makePdf(true); else window.print() }
+    let OPEN0 = 0;
+    function regBody() {
+      const [f, t] = range(), days = [...new Set([...S.sales, ...S.pays, ...S.rets].map(x => x.d))].sort(),
+        rate = p => { const l = S.sales.flatMap(s => s.items.filter(i => i.p === p)), q = sum(l, i => i.q); return q ? sum(l, i => i.a) / q : 0 };
+      let o = OPEN0; const R0 = days.map(d => { const sa = sum(S.sales.filter(s => s.d === d), s => s.t), rt = Math.round(sum(S.rets.filter(r => r.d === d && r.t === 'Sellable'), r => r.q * rate(r.p))), P = S.pays.filter(p => p.d === d && live(p)), m = k => sum(P.filter(p => p.m === k), p => p.a), cl = o - sa + rt, x = { d, o, sa, rt, cl, c: m('Cash'), q: m('Cheque'), g: m('RTGS'), a: m('Auto') }; o = cl; return x }), R = regRows().filter(x => x.d >= f && x.d <= t),
+        n = v => (Math.round(v * 100) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 }), c = v => v ? n(v) : '', dm = d => d.split('-').reverse().join('/'), T = k => sum(R, x => x[k]); REG = { R, f, t };
+      return `<div class="card"><h2>Register format (this prints as PDF)</h2><div class="rgt">SSRSM Register</div><div class="rgs">${dm(f)}${f !== t ? ' to ' + dm(t) : ''}</div><div class="wrap"><table><thead><tr><th rowspan="2">S.No.</th><th rowspan="2">Date</th><th rowspan="2">Opening<br>Stock</th><th rowspan="2">New<br>Stock</th><th rowspan="2">Daily<br>Sales</th><th rowspan="2">Return<br>Stock</th><th rowspan="2">Total Closing<br>Stock</th><th colspan="5">Collection</th></tr><tr><th>Cash</th><th>Cheque</th><th>RTGS</th><th>Auto</th><th>Credit</th></tr></thead><tbody>${R.map((x, i) => `<tr><td>${i + 1}.</td><td>${dm(x.d)}</td><td>${n(x.o)}</td><td>${c(x.ns)}</td><td>${n(x.sa)}</td><td>${c(x.rt)}</td><td>${n(x.cl)}</td><td>${c(x.c)}</td><td>${c(x.q)}</td><td>${c(x.g)}</td><td>${c(x.a)}</td><td>${c(x.cr)}</td></tr>`).join('') || '<tr><td colspan="12">No entries in this period</td></tr>'}</tbody>${R.length ? `<tfoot><tr><td colspan="2">Total</td><td>${n(T('o'))}</td><td>${n(T('ns'))}</td><td>${n(T('sa'))}</td><td>${n(T('rt'))}</td><td>${n(T('cl'))}</td><td>${n(T('c'))}</td><td>${n(T('q'))}</td><td>${n(T('g'))}</td><td>${n(T('a'))}</td><td>${n(T('cr'))}</td></tr></tfoot>` : ''}</table></div></div>`
+    }
+    function prodv() { return `<h1>Products</h1><div class="card"><label>New product name</label><input id="npn" placeholder="e.g. Dettol"><label>Opening stock (qty)</label><input id="nps" type="number" inputmode="numeric" value="0"><div style="height:12px"></div><button class="p" onclick="addProd()">Add product</button></div><div class="card">${S.prods.map(p => `<div class="li"><span>${p.n}<small>Stock: ${p.s}</small></span><button class="s" onclick="delProd('${p.id}')">Delete</button></div>`).join('') || '<p class="hint">No products yet.</p>'}</div>` }
+    function addProd() { const n = $('#npn').value.trim(); if (!n || prod(n)) return toast('Enter a new product name'); S.prods.push({ id: uid(), n, c: '', s: Math.max(0, +$('#nps').value || 0), d: 0 }); save(); toast('Product added'); render() }
+    function delProd(i) { const p = pid(i); if (!confirm('Delete ' + p.n + '? Past sales stay in the totals.')) return; S.prods = S.prods.filter(x => x.id !== i); save(); toast('Product deleted'); render() }
+    function rep() { }
+    function repBody() {
+      const [f, t] = range(), In = x => x.d >= f && x.d <= t, SA = S.sales.filter(In), PA = S.pays.filter(x => In(x) && live(x)), RE = S.rets.filter(In);
+      const pr = S.prods.map(p => ({ n: p.n, q: sum(SA, s => sum(s.items.filter(i => i.p === p.id), i => i.q)), a: sum(SA, s => sum(s.items.filter(i => i.p === p.id), i => i.a)) })).filter(x => x.q);
+      return `<div class="card"><b>SSRSM Accounts</b> — report for ${f}${f !== t ? ' to ' + t : ''}
+<div class="grid" style="margin-top:10px"><div class="stat"><span>Total sales</span><b>${inr(sum(SA, s => s.t))}</b></div><div class="stat"><span>Total collected</span><b>${inr(sum(PA, p => p.a))}</b></div></div>
+<h2>Payment mode summary</h2><table>${MODES.map(m => `<tr><td>${m}</td><td>${inr(sum(PA.filter(p => p.m === m), p => p.a))}</td></tr>`).join('')}</table>
+<h2>Product-wise sales</h2><table><tr><th>Product</th><th>Qty</th><th>Amount</th></tr>${pr.map(x => `<tr><td>${x.n}</td><td>${x.q}</td><td>${inr(x.a)}</td></tr>`).join('') || '<tr><td>No sales</td><td></td><td></td></tr>'}</table>
+<h2>Returns</h2><p>Sellable: ${sum(RE.filter(r => r.t === 'Sellable'), r => r.q)} · Damaged: ${sum(RE.filter(r => r.t === 'Damaged'), r => r.q)}</p>
+<h2>Total outstanding (now)</h2><table><tr><td>Pending amount</td><td>${inr(bal())}</td></tr></table></div>`
+    }
+    function close() {
+      const T = td(), c = colls(T), ts = sum(S.sales.filter(s => s.d === T), s => s.t);
+      return `<h1>Daily closing</h1><div class="card"><div class="li"><span>Total sales</span><b>${inr(ts)}</b></div><div class="li"><span>Total collections</span><b>${inr(c.all)}</b></div>${MODES.map(m => `<div class="li"><span>${m}</span><b>${inr(c.by[m])}</b></div>`).join('')}
+<label>Actual cash in hand ₹</label><input id="ca" type="number" inputmode="decimal" oninput="cd(${c.by.Cash})"><p id="cdf" style="font-weight:600"></p><button class="p" style="width:100%" onclick="saveCl(${c.by.Cash},${ts},${c.all})">Save today’s closing</button></div>
+<h2>History</h2><div class="card">${S.closings.slice().reverse().map(x => `<div class="li"><span>${x.d}<small>Sales ${inr(x.s)} · Collected ${inr(x.c)}</small></span><b class="${x.diff ? 'bad' : 'ok'}">${x.diff ? inr(x.diff) : 'Matched'}</b></div>`).join('') || '<p class="hint">No closings saved yet.</p>'}</div>`
+    }
+    function cd(e) { const d = (+$('#ca').value || 0) - e; $('#cdf').className = d ? 'bad' : 'ok'; $('#cdf').textContent = d ? 'Mismatch: ' + inr(d) + (d < 0 ? ' short' : ' extra') : 'Cash matches' }
+    function saveCl(e, s, c) { const a = $('#ca').value; if (a === '') return toast('Enter the actual cash'); S.closings = S.closings.filter(x => x.d !== td()); S.closings.push({ d: td(), s, c, diff: (+a) - e }); save(); toast('Closing saved'); render() }
+    const _r = render; render = function () { _r(); if (tab === 'more' && sub === 'rep') { $('#rg').innerHTML = regBody() } };
+    render();
+  </script>
+</body>
+
+</html>
