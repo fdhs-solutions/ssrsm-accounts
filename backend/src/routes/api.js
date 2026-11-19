@@ -2,6 +2,8 @@ import express from 'express';
 import * as stockCtrl from '../controllers/stockEntryController.js';
 
 const router = express.Router();
+// login api
+router.get('/login', stockCtrl.login);
 
 // ==========================================
 // Products Routes

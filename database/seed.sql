@@ -1,7 +1,3 @@
--- Initial Admin
-INSERT INTO users (username, password_hash, full_name, role)
-VALUES ('admin', '$2b$10$w8T0iZ/v1yKz.jP0FqfV5uXj7p.nK3j0c9uO3o4x2L1sX5e4d2a1m', 'Administrator', 'admin')
-ON CONFLICT (username) DO NOTHING;
 
 -- Initial Products (Brands)
 INSERT INTO products (name, category, default_opening_stock) VALUES

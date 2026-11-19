@@ -1,18 +1,6 @@
 -- SSRSM Accounts - Production Database Schema
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. Admin / Users Table (Simple Authentication for single/multi admin)
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(100) DEFAULT 'Administrator',
-    role VARCHAR(20) DEFAULT 'admin',
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
 -- 2. Products / Brands Table (Dettol, Dabur, Diaper, etc.)
 CREATE TABLE IF NOT EXISTS products (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -20,6 +8,7 @@ CREATE TABLE IF NOT EXISTS products (
     category VARCHAR(100),
     default_opening_stock NUMERIC(12, 2) DEFAULT 0.00,
     is_active BOOLEAN DEFAULT TRUE,
+    is_delete BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -31,6 +20,7 @@ CREATE TABLE IF NOT EXISTS salesmen (
     name VARCHAR(100) NOT NULL,
     phone VARCHAR(20),
     is_active BOOLEAN DEFAULT TRUE,
+    is_delete BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_salesman_product UNIQUE (name, product_id)
@@ -44,6 +34,8 @@ CREATE TABLE IF NOT EXISTS daily_stock_entries (
     salesman_id UUID REFERENCES salesmen(id) ON DELETE SET NULL,
     serial_no INT,
     is_extra_entry BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_delete BOOLEAN DEFAULT FALSE,
     opening_stock NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
     new_stock NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
     daily_sales NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
