@@ -1,118 +1,64 @@
-import { Product, Salesman, DailyStockEntry } from '../models/index.js';
+import { Product, DailyStockEntry } from '../models/index.js';
 import { sendSuccess, sendError, sendBadRequest } from '../utils/response.js';
 
-// ==========================================
-// 1. PRODUCTS CONTROLLERS
-// ==========================================
-export const getProducts = async (req, res) => {
-  try {
-    const products = await Product.findActive();
-    return sendSuccess(res, products);
-  } catch (error) {
-    return sendError(res, error);
-  }
-};
-
-// ==========================================
-// 2. SALESMEN CONTROLLERS (Full CRUD: GET, POST, PUT, DELETE)
-// ==========================================
-
-// GET /api/salesmen
-export const getSalesmen = async (req, res) => {
-  try {
-    const { productId } = req.query;
-    const salesmen = await Salesman.find({ productId });
-    return sendSuccess(res, salesmen);
-  } catch (error) {
-    return sendError(res, error);
-  }
-};
-
-// POST /api/salesmen
-export const addSalesman = async (req, res) => {
-  try {
-    const { name, productId } = req.body;
-    if (!name || !productId) {
-      return sendBadRequest(res, 'Name and Product are required');
-    }
-
-    const salesman = await Salesman.create({ name, productId });
-    return sendSuccess(res, salesman, 201);
-  } catch (error) {
-    return sendError(res, error);
-  }
-};
-
-// PUT /api/salesmen/:id (Update Salesman)
-export const updateSalesman = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, productId } = req.body;
-
-    if (!name && !productId) {
-      return sendBadRequest(res, 'At least name or productId is required to update');
-    }
-
-    const updated = await Salesman.update(id, { name, productId });
-    if (!updated) {
-      return sendError(res, 'Salesman not found', 404);
-    }
-
-    return sendSuccess(res, updated, 200, 'Salesman updated successfully');
-  } catch (error) {
-    return sendError(res, error);
-  }
-};
-
-// DELETE /api/salesmen/:id (Delete Salesman)
-export const deleteSalesman = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deleted = await Salesman.delete(id);
-
-    if (!deleted) {
-      return sendError(res, 'Salesman not found', 404);
-    }
-
-    return sendSuccess(res, deleted, 200, 'Salesman deleted successfully');
-  } catch (error) {
-    return sendError(res, error);
-  }
-};
-
-// ==========================================
-// 3. DAILY STOCK ENTRIES CONTROLLERS (Full CRUD: GET, POST, PUT, DELETE)
-// ==========================================
-
-// GET /api/stock-entries/opening-stock
+// GET /api/entries/opening-stock
 export const getOpeningStock = async (req, res) => {
   try {
-    const { productId, date } = req.query;
+    let { productId, date } = req.query;
     if (!productId) {
       return sendBadRequest(res, 'productId is required');
     }
 
-    const targetDate = date || new Date().toISOString().split('T')[0];
-
-    // Find the latest previous entry before this date
-    const prevClosingStock = await DailyStockEntry.findLatestClosingStockBefore(productId, targetDate);
-
-    if (prevClosingStock !== null) {
-      return res.json({ success: true, openingStock: prevClosingStock });
+    if (!/^[0-9a-fA-F-]{36}$/.test(productId)) {
+      const allProds = await Product.findActive();
+      const matched = allProds.find(
+        p => p.name.toLowerCase() === productId.toLowerCase()
+      );
+      if (matched) {
+        productId = matched.id;
+      }
     }
 
-    // If no previous entry exists, fallback to product default opening stock
-    const defaultStock = await Product.getDefaultOpeningStock(productId);
-    return res.json({ success: true, openingStock: defaultStock });
+    const targetDate = date || new Date().toISOString().split('T')[0];
+
+    // Check if an entry already exists for this date and product (for 2nd entry autofill)
+    const existingSameDay = await DailyStockEntry.findFirstForDate(productId, targetDate);
+
+    const prevClosingStock = await DailyStockEntry.findLatestClosingStockBefore(productId, targetDate);
+
+    const openingStock = prevClosingStock !== null ? prevClosingStock : 0;
+
+    return res.json({
+      success: true,
+      openingStock,
+      sameDayEntry: existingSameDay ? {
+        openingStock: parseFloat(existingSameDay.opening_stock || 0),
+        newStock: parseFloat(existingSameDay.new_stock || 0),
+        dailySales: parseFloat(existingSameDay.daily_sales || 0),
+        stockReceived: parseFloat(existingSameDay.stock_received || 0),
+        closingStock: parseFloat(existingSameDay.closing_stock || 0),
+      } : null,
+    });
   } catch (error) {
     return sendError(res, error);
   }
 };
 
-// GET /api/stock-entries (Fetch with filters)
-export const getStockEntries = async (req, res) => {
+// GET /api/entries (Fetch with optional filters: productId, startDate, endDate)
+export const getEntries = async (req, res) => {
   try {
-    const { productId, startDate, endDate } = req.query;
+    let { productId, startDate, endDate } = req.query;
+
+    if (productId && !/^[0-9a-fA-F-]{36}$/.test(productId)) {
+      const allProds = await Product.findActive();
+      const matched = allProds.find(
+        p => p.name.toLowerCase() === productId.toLowerCase()
+      );
+      if (matched) {
+        productId = matched.id;
+      }
+    }
+
     const entries = await DailyStockEntry.findAll({ productId, startDate, endDate });
     return sendSuccess(res, entries);
   } catch (error) {
@@ -120,10 +66,10 @@ export const getStockEntries = async (req, res) => {
   }
 };
 
-// POST /api/stock-entries (Create Daily Stock Entry)
+// POST /api/entries (Create Daily Stock Entry)
 export const createStockEntry = async (req, res) => {
   try {
-    const {
+    let {
       entryDate,
       productId,
       salesmanId,
@@ -142,6 +88,17 @@ export const createStockEntry = async (req, res) => {
 
     if (!productId || !entryDate) {
       return sendBadRequest(res, 'productId and entryDate are required');
+    }
+
+    // Resolve brand name like 'Dettol' to actual product UUID
+    if (!/^[0-9a-fA-F-]{36}$/.test(productId)) {
+      const allProds = await Product.findActive();
+      const matched = allProds.find(
+        p => p.name.toLowerCase() === productId.toLowerCase()
+      );
+      if (matched) {
+        productId = matched.id;
+      }
     }
 
     // Formula: Closing = Opening + New - Daily Sales + Stock Received
@@ -180,7 +137,7 @@ export const createStockEntry = async (req, res) => {
   }
 };
 
-// PUT /api/stock-entries/:id (Update Daily Stock Entry)
+// PUT /api/entries/:id (Update Daily Stock Entry)
 export const updateStockEntry = async (req, res) => {
   try {
     const { id } = req.params;
@@ -206,7 +163,6 @@ export const updateStockEntry = async (req, res) => {
       note = existing.note,
     } = req.body;
 
-    // Formula calculation
     const closingStock = (
       parseFloat(openingStock) +
       parseFloat(newStock) -
@@ -241,7 +197,7 @@ export const updateStockEntry = async (req, res) => {
   }
 };
 
-// DELETE /api/stock-entries/:id (Delete Daily Stock Entry)
+// DELETE /api/entries/:id (Delete Daily Stock Entry)
 export const deleteStockEntry = async (req, res) => {
   try {
     const { id } = req.params;
@@ -256,27 +212,3 @@ export const deleteStockEntry = async (req, res) => {
     return sendError(res, error);
   }
 };
-
-
-export const login = async (req, res) => {
-  try {
-    const { username, password } = req.query;
-
-    if (!username || !password) {
-      return sendError(res, 'Username and password are required', 400);
-    }
-
-    const adminUser = process.env.ADMIN_USERNAME || process.env.USER_NAME;
-    const adminPass = process.env.ADMIN_PASSWORD || process.env.USER_PASSWORD;
-
-    if (username === adminUser && password === adminPass) {
-      return sendSuccess(res, null, 200, 'Login successful');
-    } else {
-      return sendError(res, 'Invalid credentials', 401);
-    }
-  } catch (error) {
-    return sendError(res, error);
-  }
-};
-
-

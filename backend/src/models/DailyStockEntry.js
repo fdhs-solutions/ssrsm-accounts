@@ -33,6 +33,19 @@ export const DailyStockEntry = {
   },
 
   /**
+   * Find first entry for a specific date and product (to autofill for 2nd entry)
+   */
+  async findFirstForDate(productId, date) {
+    const result = await db.query(
+      `SELECT * FROM daily_stock_entries 
+       WHERE product_id = $1 AND entry_date = $2 
+       ORDER BY created_at ASC LIMIT 1`,
+      [productId, date]
+    );
+    return result.rows[0] || null;
+  },
+
+  /**
    * Insert a new daily stock entry
    */
   async create(data) {
@@ -166,7 +179,10 @@ export const DailyStockEntry = {
    */
   async findAll({ productId, startDate, endDate } = {}) {
     let queryText = `
-      SELECT e.*, p.name as product_name, s.name as salesman_name
+      SELECT e.*, 
+        TO_CHAR(e.entry_date, 'YYYY-MM-DD') AS entry_date,
+        p.name as product_name, 
+        s.name as salesman_name
       FROM daily_stock_entries e
       JOIN products p ON e.product_id = p.id
       LEFT JOIN salesmen s ON e.salesman_id = s.id

@@ -1,37 +1,36 @@
 import express from 'express';
+import { login } from '../controllers/login-controller.js';
+import { getDashboardData } from '../controllers/dashboard-controller.js';
+import * as salesmenCtrl from '../controllers/salesmen-Controller.js';
 import * as stockCtrl from '../controllers/stockEntryController.js';
 
 const router = express.Router();
-// login api
-router.get('/login', stockCtrl.login);
 
 // ==========================================
-// Products Routes
+// 1. Login (GET)
 // ==========================================
-router.get('/products', stockCtrl.getProducts);
+router.get('/login', login);
 
 // ==========================================
-// Salesmen Routes (Full CRUD)
+// 2. Dashboard / Home Page Analytics (GET)
 // ==========================================
-router.get('/salesmen', stockCtrl.getSalesmen);
-router.post('/salesmen', stockCtrl.addSalesman);
-router.put('/salesmen/:id', stockCtrl.updateSalesman);
-router.delete('/salesmen/:id', stockCtrl.deleteSalesman);
+router.get('/dashboard', getDashboardData);
 
 // ==========================================
-// Daily Stock Entries Routes (Full CRUD)
+// 3. Salesmen CRUD (GET, POST, PUT, DELETE)
 // ==========================================
-router.get('/stock-entries/opening-stock', stockCtrl.getOpeningStock);
-router.get('/stock-entries', stockCtrl.getStockEntries);
-router.post('/stock-entries', stockCtrl.createStockEntry);
-router.put('/stock-entries/:id', stockCtrl.updateStockEntry);
-router.delete('/stock-entries/:id', stockCtrl.deleteStockEntry);
+router.get('/salesmen', salesmenCtrl.getSalesmen);
+router.post('/salesmen', salesmenCtrl.addSalesman);
+router.put('/salesmen/:id', salesmenCtrl.updateSalesman);
+router.delete('/salesmen/:id', salesmenCtrl.deleteSalesman);
 
-// Backward-compatibility aliases for /registers
-router.get('/registers/opening-stock', stockCtrl.getOpeningStock);
-router.get('/registers', stockCtrl.getStockEntries);
-router.post('/registers', stockCtrl.createStockEntry);
-router.put('/registers/:id', stockCtrl.updateStockEntry);
-router.delete('/registers/:id', stockCtrl.deleteStockEntry);
+// ==========================================
+// 4. Entries CRUD (GET, POST, PUT, DELETE)
+// ==========================================
+router.get('/entries/opening-stock', stockCtrl.getOpeningStock);
+router.get('/entries', stockCtrl.getEntries);
+router.post('/entries', stockCtrl.createStockEntry);
+router.put('/entries/:id', stockCtrl.updateStockEntry);
+router.delete('/entries/:id', stockCtrl.deleteStockEntry);
 
 export default router;
