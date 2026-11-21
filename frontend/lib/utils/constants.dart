@@ -46,11 +46,6 @@ class AppColors {
 
 class ApiConfig {
   static String get baseUrl {
-    // Web and Windows Desktop use localhost
-    if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows) {
-      return 'http://localhost:5000/api';
-    }
-    // Android Emulator uses 10.0.2.2
-    return 'http://10.0.2.2:5000/api';
+    return 'https://ssrsm-accounts-api.fdhs-solution.com/api';
   }
 }
