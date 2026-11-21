@@ -1,7 +1,65 @@
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 final _inrFormat = NumberFormat('#,##,##0.##', 'en_IN');
+
+/// Format raw number string or num into Indian comma style (e.g. 100000 -> "1,00,000")
+String formatIndianNumber(String val) {
+  if (val.isEmpty) return '';
+  final clean = val.replaceAll(',', '').trim();
+  if (clean.isEmpty) return '';
+  final parts = clean.split('.');
+  final integerPart = parts[0];
+  if (integerPart.isEmpty) return '';
+
+  String res = '';
+  final len = integerPart.length;
+  if (len <= 3) {
+    res = integerPart;
+  } else {
+    final lastThree = integerPart.substring(len - 3);
+    final rest = integerPart.substring(0, len - 3);
+    final buffer = StringBuffer();
+    for (int i = 0; i < rest.length; i++) {
+      if (i > 0 && (rest.length - i) % 2 == 0) {
+        buffer.write(',');
+      }
+      buffer.write(rest[i]);
+    }
+    res = '${buffer.toString()},$lastThree';
+  }
+
+  if (parts.length > 1) {
+    res = '$res.${parts[1]}';
+  }
+  return res;
+}
+
+/// TextInputFormatter that auto-formats integer/decimal inputs in Indian number style (1,00,000)
+class IndianNumberTextInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    final raw = newValue.text.replaceAll(',', '');
+    // Allow digits and at most one decimal point
+    if (!RegExp(r'^\d*\.?\d*$').hasMatch(raw)) {
+      return oldValue;
+    }
+
+    final formatted = formatIndianNumber(raw);
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 String inr(num n) => '\u20B9${_inrFormat.format(n)}';
 

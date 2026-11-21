@@ -7,7 +7,7 @@ export const DailyStockEntry = {
   async findLatestClosingStockBefore(productId, date) {
     const result = await db.query(
       `SELECT closing_stock FROM daily_stock_entries 
-       WHERE product_id = $1 AND entry_date < $2 AND is_extra_entry = FALSE 
+       WHERE product_id = $1 AND entry_date < $2 AND is_extra_entry = FALSE AND is_delete = FALSE 
        ORDER BY entry_date DESC LIMIT 1`,
       [productId, date]
     );
@@ -26,7 +26,7 @@ export const DailyStockEntry = {
        FROM daily_stock_entries e
        JOIN products p ON e.product_id = p.id
        LEFT JOIN salesmen s ON e.salesman_id = s.id
-       WHERE e.id = $1`,
+       WHERE e.id = $1 AND e.is_delete = FALSE`,
       [id]
     );
     return result.rows[0] || null;
@@ -38,7 +38,7 @@ export const DailyStockEntry = {
   async findFirstForDate(productId, date) {
     const result = await db.query(
       `SELECT * FROM daily_stock_entries 
-       WHERE product_id = $1 AND entry_date = $2 
+       WHERE product_id = $1 AND entry_date = $2 AND is_delete = FALSE 
        ORDER BY created_at ASC LIMIT 1`,
       [productId, date]
     );
@@ -164,11 +164,14 @@ export const DailyStockEntry = {
   },
 
   /**
-   * Delete entry by ID
+   * Soft delete entry by ID
    */
   async delete(id) {
     const result = await db.query(
-      'DELETE FROM daily_stock_entries WHERE id = $1 RETURNING *',
+      `UPDATE daily_stock_entries 
+       SET is_delete = TRUE, is_active = FALSE, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $1 AND is_delete = FALSE 
+       RETURNING *`,
       [id]
     );
     return result.rows[0] || null;
@@ -186,7 +189,7 @@ export const DailyStockEntry = {
       FROM daily_stock_entries e
       JOIN products p ON e.product_id = p.id
       LEFT JOIN salesmen s ON e.salesman_id = s.id
-      WHERE 1=1
+      WHERE e.is_delete = FALSE
     `;
     const params = [];
 

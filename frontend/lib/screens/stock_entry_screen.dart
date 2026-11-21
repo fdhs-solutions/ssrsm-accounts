@@ -88,22 +88,28 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
     } catch (_) {}
   }
 
+  double _parseCleanNum(String text) {
+    final clean = text.replaceAll(',', '').trim();
+    return double.tryParse(clean) ?? 0.0;
+  }
+
   void _recalculateClosing() {
-    final double open = double.tryParse(_openingStockCtrl.text) ?? 0;
-    final double nw = double.tryParse(_newStockCtrl.text) ?? 0;
-    final double sales = double.tryParse(_dailySalesCtrl.text) ?? 0;
-    final double received = double.tryParse(_stockReceivedCtrl.text) ?? 0;
+    final double open = _parseCleanNum(_openingStockCtrl.text);
+    final double nw = _parseCleanNum(_newStockCtrl.text);
+    final double sales = _parseCleanNum(_dailySalesCtrl.text);
+    final double received = _parseCleanNum(_stockReceivedCtrl.text);
 
     // Formula: Closing = Opening + New - Daily Sales + Stock Received
     final double closing = open + nw - sales + received;
-    _closingStockCtrl.text = closing % 1 == 0 ? closing.toInt().toString() : closing.toStringAsFixed(2);
+    final formattedClosing = closing % 1 == 0 ? closing.toInt().toString() : closing.toStringAsFixed(2);
+    _closingStockCtrl.text = formatIndianNumber(formattedClosing);
   }
 
   Future<void> _saveEntry() async {
-    final double open = double.tryParse(_openingStockCtrl.text) ?? 0;
-    final double nw = double.tryParse(_newStockCtrl.text) ?? 0;
-    final double sales = double.tryParse(_dailySalesCtrl.text) ?? 0;
-    final double received = double.tryParse(_stockReceivedCtrl.text) ?? 0;
+    final double open = _parseCleanNum(_openingStockCtrl.text);
+    final double nw = _parseCleanNum(_newStockCtrl.text);
+    final double sales = _parseCleanNum(_dailySalesCtrl.text);
+    final double received = _parseCleanNum(_stockReceivedCtrl.text);
 
     if (sales > (open + nw + received)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -122,11 +128,11 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
       'newStock': nw,
       'dailySales': sales,
       'stockReceived': received,
-      'cashAmount': double.tryParse(_modeControllers['Cash']!.text) ?? 0,
-      'chequeAmount': double.tryParse(_modeControllers['Cheque']!.text) ?? 0,
-      'rtgsAmount': double.tryParse(_modeControllers['RTGS']!.text) ?? 0,
-      'autoAmount': double.tryParse(_modeControllers['Auto']!.text) ?? 0,
-      'creditAmount': double.tryParse(_modeControllers['Credit']!.text) ?? 0,
+      'cashAmount': _parseCleanNum(_modeControllers['Cash']!.text),
+      'chequeAmount': _parseCleanNum(_modeControllers['Cheque']!.text),
+      'rtgsAmount': _parseCleanNum(_modeControllers['RTGS']!.text),
+      'autoAmount': _parseCleanNum(_modeControllers['Auto']!.text),
+      'creditAmount': _parseCleanNum(_modeControllers['Credit']!.text),
       'note': _noteCtrl.text.trim(),
     };
 
@@ -389,7 +395,7 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
 
   Widget _buildHeaderBanner() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF4338CA), Color(0xFF6366F1)],
@@ -408,27 +414,32 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.add_shopping_cart, color: Colors.white, size: 24),
+            child: const Icon(Icons.add_shopping_cart, color: Colors.white, size: 22),
           ),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'New stock entry',
-                style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
-              ),
-              Text(
-                'Add daily sales, stock received & collections',
-                style: GoogleFonts.mukta(fontSize: 13, color: Colors.white.withOpacity(0.9)),
-              ),
-            ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'New stock entry',
+                  style: GoogleFonts.sora(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
+                ),
+                Text(
+                  'Add daily sales, stock received & collections',
+                  style: GoogleFonts.mukta(fontSize: 12, color: Colors.white.withOpacity(0.9), height: 1.1),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -457,7 +468,7 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
             readOnly: readOnly,
             keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
             inputFormatters: isNumber
-                ? [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))]
+                ? [IndianNumberTextInputFormatter()]
                 : null,
             onChanged: (_) => _recalculateClosing(),
             decoration: InputDecoration(

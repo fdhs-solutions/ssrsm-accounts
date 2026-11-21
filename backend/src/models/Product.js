@@ -6,7 +6,7 @@ export const Product = {
    */
   async findActive() {
     const result = await db.query(
-      'SELECT * FROM products WHERE is_active = TRUE ORDER BY name ASC'
+      'SELECT * FROM products WHERE is_active = TRUE AND is_delete = FALSE ORDER BY name ASC'
     );
     return result.rows;
   },
@@ -16,7 +16,7 @@ export const Product = {
    */
   async findById(id) {
     const result = await db.query(
-      'SELECT * FROM products WHERE id = $1',
+      'SELECT * FROM products WHERE id = $1 AND is_delete = FALSE',
       [id]
     );
     return result.rows[0] || null;

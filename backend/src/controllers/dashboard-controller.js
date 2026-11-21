@@ -23,7 +23,7 @@ export const getDashboardData = async (req, res) => {
     }
 
     // Base WHERE conditions
-    const conditions = ['1=1'];
+    const conditions = ['e.is_delete = FALSE'];
     const params = [];
 
     if (date) {

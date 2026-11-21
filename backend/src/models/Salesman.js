@@ -6,10 +6,15 @@ export const Salesman = {
    */
   async find({ productId } = {}) {
     let queryText = `
-      SELECT s.*, p.name as product_name 
+      SELECT 
+        s.id,
+        s.name,
+        s.product_id,
+        p.name as product_name,
+        s.is_active
       FROM salesmen s 
       LEFT JOIN products p ON s.product_id = p.id 
-      WHERE s.is_active = TRUE
+      WHERE s.is_delete = FALSE AND s.is_active = TRUE
     `;
     const params = [];
 
@@ -28,7 +33,15 @@ export const Salesman = {
    */
   async findById(id) {
     const result = await db.query(
-      'SELECT s.*, p.name as product_name FROM salesmen s LEFT JOIN products p ON s.product_id = p.id WHERE s.id = $1',
+      `SELECT 
+        s.id,
+        s.name,
+        s.product_id,
+        p.name as product_name,
+        s.is_active
+       FROM salesmen s 
+       LEFT JOIN products p ON s.product_id = p.id 
+       WHERE s.id = $1 AND s.is_delete = FALSE`,
       [id]
     );
     return result.rows[0] || null;
@@ -39,7 +52,8 @@ export const Salesman = {
    */
   async create({ name, productId }) {
     const result = await db.query(
-      'INSERT INTO salesmen (name, product_id) VALUES ($1, $2) RETURNING *',
+      `INSERT INTO salesmen (name, product_id) VALUES ($1, $2) 
+       RETURNING id, name, product_id, is_active`,
       [name.trim(), productId]
     );
     return result.rows[0];
@@ -63,18 +77,22 @@ export const Salesman = {
     updates.push('updated_at = CURRENT_TIMESTAMP');
 
     const result = await db.query(
-      `UPDATE salesmen SET ${updates.join(', ')} WHERE id = $1 RETURNING *`,
+      `UPDATE salesmen SET ${updates.join(', ')} WHERE id = $1 
+       RETURNING id, name, product_id, is_active`,
       params
     );
     return result.rows[0] || null;
   },
 
   /**
-   * Delete salesman by ID (Soft delete or Cascade)
+   * Soft delete salesman by ID
    */
   async delete(id) {
     const result = await db.query(
-      'DELETE FROM salesmen WHERE id = $1 RETURNING *',
+      `UPDATE salesmen 
+       SET is_delete = TRUE, is_active = FALSE, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $1 AND is_delete = FALSE 
+       RETURNING id, name, product_id`,
       [id]
     );
     return result.rows[0] || null;

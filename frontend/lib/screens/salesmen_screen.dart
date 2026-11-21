@@ -124,7 +124,7 @@ class _SalesmenScreenState extends State<SalesmenScreen> {
 
   Widget _buildHeaderBanner() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF0E7490), Color(0xFF06B6D4)],
@@ -143,27 +143,32 @@ class _SalesmenScreenState extends State<SalesmenScreen> {
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.people, color: Colors.white, size: 24),
+            child: const Icon(Icons.people, color: Colors.white, size: 22),
           ),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Sales man',
-                style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
-              ),
-              Text(
-                'Add and manage salesmen for each brand',
-                style: GoogleFonts.mukta(fontSize: 13, color: Colors.white.withOpacity(0.9)),
-              ),
-            ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Sales man',
+                  style: GoogleFonts.sora(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
+                ),
+                Text(
+                  'Add and manage salesmen for each brand',
+                  style: GoogleFonts.mukta(fontSize: 12, color: Colors.white.withOpacity(0.9), height: 1.1),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -71,7 +71,7 @@ class _RootNavigatorState extends State<RootNavigator> {
       StockEntryScreen(
         onSaved: () {
           setState(() {
-            _currentIndex = 0; // Navigate to home
+            _currentIndex = 3; // Navigate directly to Print / PDF (Register) page
           });
         },
       ),

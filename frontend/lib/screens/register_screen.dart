@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:html' as html;
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/helpers.dart';
@@ -50,7 +52,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     String? startDate;
     String? endDate;
 
-    if (_selectedFilter == 'Today') {
+    // If a search date is selected in "Find entry by date", fetch for that date specifically
+    if (_searchByDate != null) {
+      final s = dateISO(_searchByDate!);
+      startDate = s;
+      endDate = s;
+    } else if (_selectedFilter == 'Today') {
       startDate = todayISO();
       endDate = todayISO();
     } else if (_selectedFilter == 'Week') {
@@ -73,6 +80,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final list = await ApiService.getEntries(
         productId: _selectedBrand,
+        productName: _selectedBrand,
         startDate: startDate,
         endDate: endDate,
       );
@@ -194,6 +202,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 12),
                   _buildTableCard(),
                   const SizedBox(height: 20),
+                  _buildExportActionsCard(),
+                  const SizedBox(height: 20),
                   _buildEditDeleteCard(),
                   const SizedBox(height: 40),
                 ],
@@ -207,7 +217,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _buildHeaderBanner() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFFB45309), Color(0xFFF59E0B)],
@@ -226,27 +236,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.table_chart, color: Colors.white, size: 24),
+            child: const Icon(Icons.table_chart, color: Colors.white, size: 22),
           ),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Register & Ledger',
-                style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
-              ),
-              Text(
-                'View, filter, edit & manage stock ledger entries',
-                style: GoogleFonts.mukta(fontSize: 13, color: Colors.white.withOpacity(0.9)),
-              ),
-            ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Register & Ledger',
+                  style: GoogleFonts.sora(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
+                ),
+                Text(
+                  'View, filter, edit & manage stock ledger entries',
+                  style: GoogleFonts.mukta(fontSize: 12, color: Colors.white.withOpacity(0.9), height: 1.1),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -268,28 +283,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: _filters.map((f) {
-                final isSelected = _selectedFilter == f;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(f),
-                    selected: isSelected,
-                    onSelected: (val) {
-                      setState(() => _selectedFilter = f);
+              children: [
+                ..._filters.map((f) {
+                  final isSelected = _selectedFilter == f;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(f),
+                      selected: isSelected,
+                      onSelected: (val) {
+                        setState(() => _selectedFilter = f);
+                        _loadEntries();
+                      },
+                      selectedColor: AppColors.pri,
+                      backgroundColor: AppColors.bg,
+                      labelStyle: GoogleFonts.mukta(
+                        color: isSelected ? Colors.white : AppColors.ink,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      showCheckmark: false,
+                    ),
+                  );
+                }),
+                // Clear Filter Button
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _selectedFilter = 'Today';
+                        _customStartDate = null;
+                        _customEndDate = null;
+                        _searchByDate = null;
+                      });
                       _loadEntries();
                     },
-                    selectedColor: AppColors.pri,
-                    backgroundColor: AppColors.bg,
-                    labelStyle: GoogleFonts.mukta(
-                      color: isSelected ? Colors.white : AppColors.ink,
-                      fontWeight: FontWeight.w600,
+                    icon: const Icon(Icons.filter_alt_off, size: 16, color: Colors.white),
+                    label: const Text('Clear Filter', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF4444), // Red color
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 1,
                     ),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    showCheckmark: false,
                   ),
-                );
-              }).toList(),
+                ),
+              ],
             ),
           ),
           if (_selectedFilter == 'Custom') ...[
@@ -310,10 +350,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         _loadEntries();
                       }
                     },
-                    child: Text(_customStartDate != null ? dateLabel(_customStartDate!) : 'From Date'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      minimumSize: const Size(0, 38),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      _customStartDate != null ? dateLabel(_customStartDate!) : 'From Date',
+                      style: GoogleFonts.mukta(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () async {
@@ -328,7 +376,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         _loadEntries();
                       }
                     },
-                    child: Text(_customEndDate != null ? dateLabel(_customEndDate!) : 'To Date'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      minimumSize: const Size(0, 38),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      _customEndDate != null ? dateLabel(_customEndDate!) : 'To Date',
+                      style: GoogleFonts.mukta(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedFilter = 'Today';
+                      _customStartDate = null;
+                      _customEndDate = null;
+                    });
+                    _loadEntries();
+                  },
+                  icon: const Icon(Icons.close, color: Color(0xFFEF4444)),
+                  tooltip: 'Close Custom',
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.tint,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ],
@@ -341,6 +414,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _buildBrandCard() {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.card,
@@ -494,28 +568,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ],
             ),
             // Data Rows
-            ..._entries.asMap().entries.map((item) {
-              final idx = item.key + 1;
-              final e = item.value;
-              return TableRow(
-                children: [
-                  _td('$idx.', align: TextAlign.center),
-                  _td(formatDate((e['entry_date'] ?? '').toString()), align: TextAlign.center),
-                  _td(formatNumWithZero(e['opening_stock'])),
-                  _td(formatNum(e['new_stock'])),
-                  _td(formatNumWithZero(e['daily_sales'])),
-                  _td(formatNum(e['stock_received'])),
-                  _td(formatNumWithZero(e['closing_stock'])),
-                  _td(formatNum(e['cash_amount'])),
-                  _td(formatNum(e['cheque_amount'])),
-                  _td(formatNum(e['rtgs_amount'])),
-                  _td(formatNum(e['auto_amount'])),
-                  _td(formatNum(e['credit_amount'])),
-                  _td(e['salesman_name'] ?? '', align: TextAlign.left),
-                  _td(e['note'] ?? '', align: TextAlign.left),
-                ],
-              );
-            }),
+            ...() {
+              int currentSno = 0;
+              String? lastDate;
+
+              return _entries.map((e) {
+                final dateStr = (e['entry_date'] ?? '').toString().split('T')[0];
+                final bool isSubsequentEntry = (dateStr == lastDate);
+
+                String displaySno = '';
+                if (!isSubsequentEntry) {
+                  currentSno++;
+                  lastDate = dateStr;
+                  displaySno = '$currentSno.';
+                }
+
+                // If it is 2nd or 3rd entry on the same date, highlight row with subtle warm tint like requested
+                final rowColor = isSubsequentEntry ? const Color(0xFFFFF3DC) : Colors.transparent;
+
+                return TableRow(
+                  decoration: BoxDecoration(color: rowColor),
+                  children: [
+                    _td(displaySno, align: TextAlign.center),
+                    _td(formatDate((e['entry_date'] ?? '').toString()), align: TextAlign.center),
+                    _td(formatNumWithZero(e['opening_stock'])),
+                    _td(formatNum(e['new_stock'])),
+                    _td(formatNumWithZero(e['daily_sales'])),
+                    _td(formatNum(e['stock_received'])),
+                    _td(formatNumWithZero(e['closing_stock'])),
+                    _td(formatNum(e['cash_amount'])),
+                    _td(formatNum(e['cheque_amount'])),
+                    _td(formatNum(e['rtgs_amount'])),
+                    _td(formatNum(e['auto_amount'])),
+                    _td(formatNum(e['credit_amount'])),
+                    _td(e['salesman_name'] ?? '', align: TextAlign.left),
+                    _td(e['note'] ?? '', align: TextAlign.left),
+                  ],
+                );
+              }).toList();
+            }(),
             // Footer Totals Row
             TableRow(
               decoration: const BoxDecoration(color: headerBg),
@@ -683,6 +774,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     );
                     if (picked != null) {
                       setState(() => _searchByDate = picked);
+                      _loadEntries(); // triggers GET /api/entries API call with that date
                     }
                   },
                   child: Container(
@@ -698,7 +790,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          _searchByDate != null ? dateLabel(_searchByDate!) : 'mm/dd/yyyy',
+                          _searchByDate != null ? dateLabel(_searchByDate!) : 'dd/mm/yyyy',
                           style: GoogleFonts.mukta(
                             fontSize: 14,
                             color: _searchByDate != null ? AppColors.ink : AppColors.mut,
@@ -712,7 +804,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(width: 10),
               OutlinedButton(
-                onPressed: () => setState(() => _searchByDate = null),
+                onPressed: () {
+                  setState(() => _searchByDate = null);
+                  _loadEntries();
+                },
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(80, 48),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -853,6 +948,378 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildExportActionsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromRGBO(20, 23, 58, 0.04),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Title with left accent bar
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4338CA),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Preview, print or download',
+                style: GoogleFonts.sora(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 1. Full-width Preview Button
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: OutlinedButton(
+              onPressed: _handlePdfPreview,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF1E293B),
+                backgroundColor: Colors.white,
+                side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(
+                'Preview',
+                style: GoogleFonts.mukta(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 2. Row with Print and Download PDF buttons
+          Row(
+            children: [
+              // Print Button (Outlined)
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: OutlinedButton(
+                    onPressed: _handlePdfPrint,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1E293B),
+                      backgroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      'Print',
+                      style: GoogleFonts.mukta(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+
+              // Download PDF Button (Filled Gradient / Brand Blue)
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: ElevatedButton(
+                    onPressed: _handlePdfDownload,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4338CA),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Download PDF',
+                        maxLines: 1,
+                        style: GoogleFonts.mukta(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Caption
+          Text(
+            'Print and PDF contain only the entries shown above.',
+            style: GoogleFonts.mukta(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  (String?, String?) _getActiveDateRange() {
+    String? startDate;
+    String? endDate;
+    if (_searchByDate != null) {
+      final s = dateISO(_searchByDate!);
+      startDate = s;
+      endDate = s;
+    } else if (_selectedFilter == 'Today') {
+      startDate = todayISO();
+      endDate = todayISO();
+    } else if (_selectedFilter == 'Week') {
+      final range = thisWeekRange();
+      startDate = dateISO(range.start);
+      endDate = dateISO(range.end);
+    } else if (_selectedFilter == 'Month') {
+      final range = thisMonthRange();
+      startDate = dateISO(range.start);
+      endDate = dateISO(range.end);
+    } else if (_selectedFilter == 'Year') {
+      final range = thisYearRange();
+      startDate = dateISO(range.start);
+      endDate = dateISO(range.end);
+    } else if (_selectedFilter == 'Custom') {
+      if (_customStartDate != null) startDate = dateISO(_customStartDate!);
+      if (_customEndDate != null) endDate = dateISO(_customEndDate!);
+    }
+    return (startDate, endDate);
+  }
+
+  void _handlePdfPreview() {
+    if (_entries.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No entries in this selection to preview')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(12),
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 1040, maxHeight: 700),
+            decoration: BoxDecoration(
+              color: AppColors.bg,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color.fromRGBO(0, 0, 0, 0.3),
+                  blurRadius: 24,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                // Top Header Toolbar matching Demo (#pv .pvt)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color.fromRGBO(20, 23, 58, 0.08),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Preview',
+                        style: GoogleFonts.sora(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                      const Spacer(),
+                      // Close button
+                      OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF475569),
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: const Size(0, 34),
+                        ),
+                        child: const Text('Close'),
+                      ),
+                      const SizedBox(width: 8),
+                      // Print button
+                      OutlinedButton(
+                        onPressed: () {
+                          _handlePdfPrint();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF475569),
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: const Size(0, 34),
+                        ),
+                        child: const Text('Print'),
+                      ),
+                      const SizedBox(width: 8),
+                      // Download PDF button
+                      ElevatedButton(
+                        onPressed: () {
+                          _handlePdfDownload();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4338CA),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: const Size(0, 34),
+                        ),
+                        child: const Text('Download PDF'),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Body Paper Card matching Demo (#pv .pvb .paper)
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color.fromRGBO(0, 0, 0, 0.15),
+                              blurRadius: 16,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'SSRSM Register ($_selectedBrand)',
+                              style: GoogleFonts.sora(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _getRegisterDateSubtitle(),
+                              style: GoogleFonts.mukta(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildTableCard(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handlePdfDownload() async {
+    final (startDate, endDate) = _getActiveDateRange();
+    final url = await ApiService.getPdfUrl(
+      productId: _selectedBrand,
+      productName: _selectedBrand,
+      startDate: startDate,
+      endDate: endDate,
+      download: true,
+    );
+
+    if (kIsWeb) {
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'SSRSM_Register_$_selectedBrand.pdf')
+        ..target = '_blank';
+      html.document.body?.children.add(anchor);
+      anchor.click();
+      anchor.remove();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Downloading PDF: $url')),
+      );
+    }
+  }
+
+  Future<void> _handlePdfPrint() async {
+    final (startDate, endDate) = _getActiveDateRange();
+    final url = await ApiService.getPdfUrl(
+      productId: _selectedBrand,
+      productName: _selectedBrand,
+      startDate: startDate,
+      endDate: endDate,
+      download: false,
+    );
+
+    if (kIsWeb) {
+      // In web browser, opening the PDF in a new tab allows direct viewing and Ctrl+P / native print
+      html.window.open(url, '_blank');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Printing PDF: $url')),
+      );
+    }
   }
 
   Widget _buildEditField(String label, TextEditingController ctrl, {bool isNumber = true}) {
