@@ -496,78 +496,84 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     const borderColor = Color(0xFF1F2F8F);
     const headerBg = Color(0xFFEEF0FF);
+    const double totalCollectionWidth = 65 + 65 + 65 + 65 + 65 + 95; // 420px
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
+        border: Border.fromBorderSide(BorderSide(color: borderColor, width: 1.2)),
+        boxShadow: [
           BoxShadow(color: Color.fromRGBO(20, 23, 58, 0.08), blurRadius: 16, offset: Offset(0, 4)),
         ],
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: Table(
-          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          border: TableBorder.all(color: borderColor, width: 1.2),
-          columnWidths: const {
-            0: FixedColumnWidth(44),   // S.No.
-            1: FixedColumnWidth(85),   // Date
-            2: FixedColumnWidth(75),   // Opening Stock
-            3: FixedColumnWidth(65),   // New Stock
-            4: FixedColumnWidth(70),   // Daily Sales
-            5: FixedColumnWidth(75),   // Stock Received
-            6: FixedColumnWidth(95),   // Total Closing Stock
-            7: FixedColumnWidth(65),   // Cash
-            8: FixedColumnWidth(65),   // Cheque
-            9: FixedColumnWidth(65),   // RTGS
-            10: FixedColumnWidth(65),  // Auto
-            11: FixedColumnWidth(65),  // Credit
-            12: FixedColumnWidth(95),  // Sales man
-            13: FixedColumnWidth(110), // Note
-          },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Row 1
-            TableRow(
-              decoration: const BoxDecoration(color: headerBg),
-              children: [
-                _th2('S.NO.', rowspan: true),
-                _th2('DATE', rowspan: true),
-                _th2('OPENING\nSTOCK', rowspan: true),
-                _th2('NEW\nSTOCK', rowspan: true),
-                _th2('DAILY\nSALES', rowspan: true),
-                _th2('STOCK\nRECEIVED', rowspan: true), // strictly Stock Received
-                _th2('TOTAL CLOSING\nSTOCK', rowspan: true),
-                _thGroup('COLLECTION'),
-                _thGroup(''),
-                _thGroup(''),
-                _thGroup(''),
-                _thGroup(''),
-                _thGroup(''),
-                _th2('NOTE', rowspan: true),
-              ],
+            // ── Tier 1 & 2 Header Row ──
+            Container(
+              decoration: const BoxDecoration(
+                color: headerBg,
+                border: Border(
+                  bottom: BorderSide(color: borderColor, width: 1.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  _buildStandaloneTh('S.NO.', 44),
+                  _buildStandaloneTh('DATE', 85),
+                  _buildStandaloneTh('OPENING\nSTOCK', 75),
+                  _buildStandaloneTh('NEW\nSTOCK', 65),
+                  _buildStandaloneTh('DAILY\nSALES', 70),
+                  _buildStandaloneTh('STOCK\nRECEIVED', 75),
+                  _buildStandaloneTh('TOTAL CLOSING\nSTOCK', 95),
+                  // Unified COLLECTION block (Top Header + 6 Sub-headers)
+                  SizedBox(
+                    width: totalCollectionWidth,
+                    height: 56,
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 28,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: borderColor, width: 1.2),
+                              right: BorderSide(color: borderColor, width: 1.2),
+                            ),
+                          ),
+                          child: Text(
+                            'COLLECTION',
+                            style: GoogleFonts.mukta(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                              color: const Color(0xFF14243A),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 28,
+                          child: Row(
+                            children: [
+                              _buildSubTh('CASH', 65),
+                              _buildSubTh('CHEQUE', 65),
+                              _buildSubTh('RTGS', 65),
+                              _buildSubTh('AUTO', 65),
+                              _buildSubTh('CREDIT', 65),
+                              _buildSubTh('SALES MAN', 95),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _buildStandaloneTh('NOTE', 110, isLast: true),
+                ],
+              ),
             ),
-            // Header Row 2 (Sub-headers under COLLECTION)
-            TableRow(
-              decoration: const BoxDecoration(color: headerBg),
-              children: [
-                const SizedBox(height: 0),
-                const SizedBox(height: 0),
-                const SizedBox(height: 0),
-                const SizedBox(height: 0),
-                const SizedBox(height: 0),
-                const SizedBox(height: 0),
-                const SizedBox(height: 0),
-                _thSub('CASH'),
-                _thSub('CHEQUE'),
-                _thSub('RTGS'),
-                _thSub('AUTO'),
-                _thSub('CREDIT'),
-                _thSub('SALES MAN'),
-                const SizedBox(height: 0),
-              ],
-            ),
-            // Data Rows
+            // ── Data Rows ──
             ...() {
               int currentSno = 0;
               String? lastDate;
@@ -583,49 +589,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   displaySno = '$currentSno.';
                 }
 
-                // If it is 2nd or 3rd entry on the same date, highlight row with subtle warm tint like requested
                 final rowColor = isSubsequentEntry ? const Color(0xFFFFF3DC) : Colors.transparent;
 
-                return TableRow(
-                  decoration: BoxDecoration(color: rowColor),
-                  children: [
-                    _td(displaySno, align: TextAlign.center),
-                    _td(formatDate((e['entry_date'] ?? '').toString()), align: TextAlign.center),
-                    _td(formatNumWithZero(e['opening_stock'])),
-                    _td(formatNum(e['new_stock'])),
-                    _td(formatNumWithZero(e['daily_sales'])),
-                    _td(formatNum(e['stock_received'])),
-                    _td(formatNumWithZero(e['closing_stock'])),
-                    _td(formatNum(e['cash_amount'])),
-                    _td(formatNum(e['cheque_amount'])),
-                    _td(formatNum(e['rtgs_amount'])),
-                    _td(formatNum(e['auto_amount'])),
-                    _td(formatNum(e['credit_amount'])),
-                    _td(e['salesman_name'] ?? '', align: TextAlign.left),
-                    _td(e['note'] ?? '', align: TextAlign.left),
-                  ],
+                return Container(
+                  decoration: BoxDecoration(
+                    color: rowColor,
+                    border: const Border(
+                      bottom: BorderSide(color: borderColor, width: 1.2),
+                    ),
+                  ),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        _cell(displaySno, 44, align: TextAlign.center),
+                        _cell(formatDate((e['entry_date'] ?? '').toString()), 85, align: TextAlign.center),
+                        _cell(formatNumWithZero(e['opening_stock']), 75),
+                        _cell(formatNum(e['new_stock']), 65),
+                        _cell(formatNumWithZero(e['daily_sales']), 70),
+                        _cell(formatNum(e['stock_received']), 75),
+                        _cell(formatNumWithZero(e['closing_stock']), 95),
+                        _cell(formatNum(e['cash_amount']), 65),
+                        _cell(formatNum(e['cheque_amount']), 65),
+                        _cell(formatNum(e['rtgs_amount']), 65),
+                        _cell(formatNum(e['auto_amount']), 65),
+                        _cell(formatNum(e['credit_amount']), 65),
+                        _cell(e['salesman_name']?.toString() ?? '', 95, align: TextAlign.left),
+                        _cell(e['note']?.toString() ?? '', 110, align: TextAlign.left, isLast: true),
+                      ],
+                    ),
+                  ),
                 );
               }).toList();
             }(),
-            // Footer Totals Row
-            TableRow(
-              decoration: const BoxDecoration(color: headerBg),
-              children: [
-                _tdBold('Total', align: TextAlign.center),
-                _tdBold(''),
-                _tdBold(formatNumWithZero(totOpen)),
-                _tdBold(formatNumWithZero(totNew)),
-                _tdBold(formatNumWithZero(totSales)),
-                _tdBold(formatNumWithZero(totRec)),
-                _tdBold(formatNumWithZero(totClose)),
-                _tdBold(formatNumWithZero(totCash)),
-                _tdBold(formatNumWithZero(totCheque)),
-                _tdBold(formatNumWithZero(totRtgs)),
-                _tdBold(formatNumWithZero(totAuto)),
-                _tdBold(formatNumWithZero(totCredit)),
-                _tdBold(''),
-                _tdBold(''),
-              ],
+            // ── Footer Totals Row ──
+            Container(
+              decoration: const BoxDecoration(
+                color: headerBg,
+              ),
+              child: IntrinsicHeight(
+                child: Row(
+                  children: [
+                    _cell('Total', 44, align: TextAlign.center, isBold: true),
+                    _cell('', 85, isBold: true),
+                    _cell(formatNumWithZero(totOpen), 75, isBold: true),
+                    _cell(formatNumWithZero(totNew), 65, isBold: true),
+                    _cell(formatNumWithZero(totSales), 70, isBold: true),
+                    _cell(formatNumWithZero(totRec), 75, isBold: true),
+                    _cell(formatNumWithZero(totClose), 95, isBold: true),
+                    _cell(formatNumWithZero(totCash), 65, isBold: true),
+                    _cell(formatNumWithZero(totCheque), 65, isBold: true),
+                    _cell(formatNumWithZero(totRtgs), 65, isBold: true),
+                    _cell(formatNumWithZero(totAuto), 65, isBold: true),
+                    _cell(formatNumWithZero(totCredit), 65, isBold: true),
+                    _cell('', 95, isBold: true),
+                    _cell('', 110, isBold: true, isLast: true),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -633,10 +653,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _th2(String title, {bool rowspan = false}) {
+  Widget _buildStandaloneTh(String title, double width, {bool isLast = false}) {
+    const borderColor = Color(0xFF1F2F8F);
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      width: width,
+      height: 56,
       alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        border: Border(
+          right: isLast ? BorderSide.none : const BorderSide(color: borderColor, width: 1.2),
+        ),
+      ),
       child: Text(
         title,
         textAlign: TextAlign.center,
@@ -650,26 +678,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _thGroup(String title) {
+  Widget _buildSubTh(String title, double width, {bool isLast = false}) {
+    const borderColor = Color(0xFF1F2F8F);
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+      width: width,
+      height: 28,
       alignment: Alignment.center,
-      child: Text(
-        title,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.mukta(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: const Color(0xFF14243A),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        border: Border(
+          right: isLast ? BorderSide.none : const BorderSide(color: borderColor, width: 1.2),
         ),
       ),
-    );
-  }
-
-  Widget _thSub(String title) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-      alignment: Alignment.center,
       child: Text(
         title,
         textAlign: TextAlign.center,
@@ -682,36 +702,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _td(String text, {TextAlign align = TextAlign.right}) {
+  Widget _cell(String text, double width, {TextAlign align = TextAlign.right, bool isBold = false, bool isLast = false}) {
+    const borderColor = Color(0xFF1F2F8F);
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 6),
+      width: width,
+      constraints: const BoxConstraints(minHeight: 34),
+      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 5),
       alignment: align == TextAlign.center
           ? Alignment.center
           : (align == TextAlign.left ? Alignment.centerLeft : Alignment.centerRight),
-      child: Text(
-        text,
-        textAlign: align,
-        style: GoogleFonts.mukta(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: const Color(0xFF14243A),
+      decoration: BoxDecoration(
+        border: Border(
+          right: isLast ? BorderSide.none : const BorderSide(color: borderColor, width: 1.2),
         ),
       ),
-    );
-  }
-
-  Widget _tdBold(String text, {TextAlign align = TextAlign.right}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-      alignment: align == TextAlign.center
-          ? Alignment.center
-          : (align == TextAlign.left ? Alignment.centerLeft : Alignment.centerRight),
       child: Text(
         text,
         textAlign: align,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: GoogleFonts.mukta(
           fontSize: 12,
-          fontWeight: FontWeight.w800,
+          fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
           color: const Color(0xFF14243A),
         ),
       ),
