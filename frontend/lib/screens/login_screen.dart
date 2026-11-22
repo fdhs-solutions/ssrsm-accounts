@@ -248,11 +248,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildFooterLink() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 22),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+        color: const Color(0xFF0F172A).withOpacity(0.45), // Sleek deep slate backdrop
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.35), width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.25),
+            blurRadius: 18,
+            offset: Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -264,38 +271,49 @@ class _LoginScreenState extends State<LoginScreen> {
               Text(
                 'Powered by ',
                 style: GoogleFonts.mukta(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  letterSpacing: 0.2,
                 ),
               ),
               InkWell(
                 onTap: () => _openUrl('https://portfolio.fdhs-solution.com/'),
                 child: Text(
                   'FDHS Solutions',
-                  style: GoogleFonts.mukta(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF67E8F9), // bright cyan link
+                  style: GoogleFonts.sora(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF38BDF8), // Electric Vivid Sky Blue
                     decoration: TextDecoration.underline,
-                    decorationColor: const Color(0xFF67E8F9),
+                    decorationColor: const Color(0xFF38BDF8),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 5),
           InkWell(
             onTap: () => _openUrl('mailto:fdhssolutions@gmail.com'),
-            child: Text(
-              'fdhssolutions@gmail.com',
-              style: GoogleFonts.mukta(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withOpacity(0.85),
-                decoration: TextDecoration.underline,
-                decorationColor: Colors.white.withOpacity(0.7),
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.mail_outline_rounded,
+                  size: 15,
+                  color: Color(0xFFE2E8F0),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'fdhssolutions@gmail.com',
+                  style: GoogleFonts.mukta(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFF1F5F9),
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
