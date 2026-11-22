@@ -102,26 +102,21 @@ String dateISO(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
 
 DateTimeRange thisWeekRange() {
   final now = DateTime.now();
-  final mon = now.subtract(Duration(days: (now.weekday - 1)));
-  final sun = mon.add(const Duration(days: 6));
-  return DateTimeRange(
-    start: DateTime(mon.year, mon.month, mon.day),
-    end: DateTime(sun.year, sun.month, sun.day),
-  );
+  final end = DateTime(now.year, now.month, now.day);
+  final start = end.subtract(const Duration(days: 6)); // Past 6 days + today = 7 days
+  return DateTimeRange(start: start, end: end);
 }
 
 DateTimeRange thisMonthRange() {
   final now = DateTime.now();
-  return DateTimeRange(
-    start: DateTime(now.year, now.month, 1),
-    end: DateTime(now.year, now.month + 1, 0),
-  );
+  final end = DateTime(now.year, now.month, now.day);
+  final start = end.subtract(const Duration(days: 29)); // Past 29 days + today = 30 days
+  return DateTimeRange(start: start, end: end);
 }
 
 DateTimeRange thisYearRange() {
   final now = DateTime.now();
-  return DateTimeRange(
-    start: DateTime(now.year, 1, 1),
-    end: DateTime(now.year, 12, 31),
-  );
+  final end = DateTime(now.year, now.month, now.day);
+  final start = end.subtract(const Duration(days: 364)); // Past 364 days + today = 365 days
+  return DateTimeRange(start: start, end: end);
 }

@@ -264,13 +264,28 @@ class _SalesmenScreenState extends State<SalesmenScreen> {
 
     if (_salesmen.isEmpty) {
       return Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(18)),
-        child: Text('$_selectedBrand me abhi koi sales man nahi hai.', style: GoogleFonts.mukta(color: AppColors.mut)),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromRGBO(20, 23, 58, 0.07),
+              blurRadius: 22,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Text(
+          '$_selectedBrand me abhi koi sales man nahi hai.',
+          style: GoogleFonts.mukta(color: AppColors.mut, fontSize: 14),
+        ),
       );
     }
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.card,
