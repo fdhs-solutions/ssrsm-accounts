@@ -44,7 +44,7 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
   String? _selectedSalesmanId;
   bool _isLoading = false;
 
-  final List<String> _products = ['Dettol', 'Dabur', 'Diaper'];
+  final List<String> _products = ['Dettol', 'Dabur', 'Diaper', 'Wholesale'];
   final List<String> _modes = ['Cash', 'Cheque', 'RTGS', 'Auto', 'Credit'];
 
   @override

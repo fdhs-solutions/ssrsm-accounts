@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:html' as html;
+import '../utils/platform_util.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 
@@ -242,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _openUrl(String url) {
     if (kIsWeb) {
-      html.window.open(url, '_blank');
+      openWebUrl(url);
     }
   }
 
