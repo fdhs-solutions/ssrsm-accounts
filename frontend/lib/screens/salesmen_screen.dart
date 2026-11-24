@@ -56,15 +56,34 @@ class _SalesmenScreenState extends State<SalesmenScreen> {
       _loadSalesmen();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sales man added to $_selectedBrand')),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Sales man added to $_selectedBrand')),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            backgroundColor: const Color(0xFF1E293B), // Sleek neutral slate dark
+          ),
         );
       }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMsg ?? 'Failed to add sales man'),
-            backgroundColor: const Color(0xFFDC2626),
+            content: Row(
+              children: [
+                const Icon(Icons.info_outline, color: Color(0xFFFBBF24), size: 20), // Soft warm amber icon
+                const SizedBox(width: 8),
+                Expanded(child: Text(errorMsg ?? 'Failed to add sales man', style: const TextStyle(color: Colors.white))),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            backgroundColor: const Color(0xFF1E293B), // Sleek neutral slate dark (NOT jarring red)
           ),
         );
       }

@@ -70,16 +70,27 @@ String formatNum(dynamic val) {
   final d = double.tryParse(val.toString());
   if (d == null) return val.toString();
   if (d == 0) return '';
-  if (d % 1 == 0) return d.toInt().toString();
-  return d.toStringAsFixed(2);
+  String raw;
+  if (d % 1 == 0) {
+    raw = d.toInt().toString();
+  } else {
+    // Trim trailing zeros after decimal if any
+    raw = d.toStringAsFixed(4).replaceAll(RegExp(r'\.?0+$'), '');
+  }
+  return formatIndianNumber(raw);
 }
 
 String formatNumWithZero(dynamic val) {
   if (val == null) return '0';
   final d = double.tryParse(val.toString());
   if (d == null) return val.toString();
-  if (d % 1 == 0) return d.toInt().toString();
-  return d.toStringAsFixed(2);
+  String raw;
+  if (d % 1 == 0) {
+    raw = d.toInt().toString();
+  } else {
+    raw = d.toStringAsFixed(4).replaceAll(RegExp(r'\.?0+$'), '');
+  }
+  return formatIndianNumber(raw);
 }
 
 String formatDate(String iso) {
