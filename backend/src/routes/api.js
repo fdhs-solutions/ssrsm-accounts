@@ -55,5 +55,6 @@ router.get('/entries', stockCtrl.getEntries);
 router.post('/entries', stockCtrl.createStockEntry);
 router.put('/entries/:id', stockCtrl.updateStockEntry);
 router.delete('/entries/:id', stockCtrl.deleteStockEntry);
+router.post('/entries/bulk-delete', stockCtrl.deleteMultipleStockEntries);
 
 export default router;

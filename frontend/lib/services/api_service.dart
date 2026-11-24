@@ -106,7 +106,7 @@ class ApiService {
     return body['success'] == true ? List.from(body['data'] ?? []) : [];
   }
 
-  static Future<Map<String, dynamic>?> addSalesman(
+  static Future<(bool, String?)> addSalesman(
       String name, String productId) async {
     String actualId = productId;
     String actualName = productId;
@@ -116,18 +116,26 @@ class ApiService {
       if (realId != null) actualId = realId;
     }
 
-    final uri = Uri.parse('$_base/salesmen');
-    final res = await http
-        .post(uri,
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode({
-              'name': name,
-              'productId': actualId,
-              'productName': actualName,
-            }))
-        .timeout(const Duration(seconds: 10));
-    final body = json.decode(res.body);
-    return body['success'] == true ? body['data'] : null;
+    try {
+      final uri = Uri.parse('$_base/salesmen');
+      final res = await http
+          .post(uri,
+              headers: {'Content-Type': 'application/json'},
+              body: json.encode({
+                'name': name,
+                'productId': actualId,
+                'productName': actualName,
+              }))
+          .timeout(const Duration(seconds: 10));
+      final body = json.decode(res.body);
+      if (body['success'] == true) {
+        return (true, null);
+      } else {
+        return (false, body['error']?.toString() ?? 'Failed to add sales man');
+      }
+    } catch (e) {
+      return (false, e.toString());
+    }
   }
 
   static Future<bool> updateSalesman(String id,
@@ -261,10 +269,34 @@ class ApiService {
   }
 
   static Future<bool> deleteEntry(String id) async {
-    final uri = Uri.parse('$_base/entries/$id');
-    final res = await http.delete(uri).timeout(const Duration(seconds: 10));
-    final body = json.decode(res.body);
-    return body['success'] == true;
+    try {
+      final uri = Uri.parse('$_base/entries/$id');
+      final res = await http.delete(uri).timeout(const Duration(seconds: 10));
+      final body = json.decode(res.body);
+      return body['success'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Bulk delete in ONE single API call (POST /api/entries/bulk-delete)
+  static Future<int> deleteEntriesBulk(List<String> ids) async {
+    if (ids.isEmpty) return 0;
+    try {
+      final uri = Uri.parse('$_base/entries/bulk-delete');
+      final res = await http
+          .post(uri,
+              headers: {'Content-Type': 'application/json'},
+              body: json.encode({'ids': ids}))
+          .timeout(const Duration(seconds: 15));
+      final body = json.decode(res.body);
+      if (body['success'] == true) {
+        return (body['data']?['deletedCount'] as int?) ?? ids.length;
+      }
+      return 0;
+    } catch (_) {
+      return 0;
+    }
   }
 
   // ── PDF Export URL ──

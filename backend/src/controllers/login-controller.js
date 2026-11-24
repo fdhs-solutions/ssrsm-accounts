@@ -1,6 +1,6 @@
 import { sendSuccess, sendError } from '../utils/response.js';
 
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
   try {
     const { username, password } = req.query;
 
@@ -17,6 +17,6 @@ export const login = async (req, res) => {
       return sendError(res, 'Invalid credentials', 401);
     }
   } catch (error) {
-    return sendError(res, error);
+    return next(error);
   }
 };

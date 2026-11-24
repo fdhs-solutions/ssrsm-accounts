@@ -230,13 +230,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (confirm != true) return;
 
     setState(() => _isBulkDeleting = true);
-    int successCount = 0;
     final idsToDelete = List<String>.from(_selectedEntryIds);
-
-    for (final id in idsToDelete) {
-      final ok = await ApiService.deleteEntry(id);
-      if (ok) successCount++;
-    }
+    final successCount = await ApiService.deleteEntriesBulk(idsToDelete);
 
     if (mounted) {
       setState(() {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/stock_entry_screen.dart';
@@ -45,7 +46,57 @@ class RootNavigator extends StatefulWidget {
 
 class _RootNavigatorState extends State<RootNavigator> {
   bool _isLoggedIn = false;
+  bool _isCheckingAuth = true;
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPersistedLogin();
+  }
+
+  Future<void> _checkPersistedLogin() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final loggedIn = prefs.getBool('isLoggedIn') ?? false;
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = loggedIn;
+          _isCheckingAuth = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isCheckingAuth = false);
+      }
+    }
+  }
+
+  Future<void> _handleLoginSuccess() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+    } catch (_) {}
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = true;
+        _currentIndex = 0;
+      });
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', false);
+    } catch (_) {}
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = false;
+        _currentIndex = 0;
+      });
+    }
+  }
 
   Future<bool> _showExitConfirmDialog() async {
     final shouldExit = await showDialog<bool>(
@@ -103,6 +154,15 @@ class _RootNavigatorState extends State<RootNavigator> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingAuth) {
+      return const Scaffold(
+        backgroundColor: AppColors.bg,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.pri),
+        ),
+      );
+    }
+
     if (!_isLoggedIn) {
       return PopScope(
         canPop: false,
@@ -114,23 +174,14 @@ class _RootNavigatorState extends State<RootNavigator> {
           }
         },
         child: LoginScreen(
-          onLoginSuccess: () {
-            setState(() {
-              _isLoggedIn = true;
-              _currentIndex = 0;
-            });
-          },
+          onLoginSuccess: _handleLoginSuccess,
         ),
       );
     }
 
     final screens = [
       HomeScreen(
-        onLogout: () {
-          setState(() {
-            _isLoggedIn = false;
-          });
-        },
+        onLogout: _handleLogout,
       ),
       const SalesmenScreen(),
       StockEntryScreen(

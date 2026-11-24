@@ -2,7 +2,7 @@ import { Product, Salesman } from '../models/index.js';
 import { sendSuccess, sendError, sendBadRequest } from '../utils/response.js';
 
 // GET /api/salesmen
-export const getSalesmen = async (req, res) => {
+export const getSalesmen = async (req, res, next) => {
   try {
     const { productId } = req.query;
     let actualProductId = productId;
@@ -23,12 +23,12 @@ export const getSalesmen = async (req, res) => {
     const salesmen = await Salesman.find({ productId: actualProductId });
     return sendSuccess(res, salesmen);
   } catch (error) {
-    return sendError(res, error);
+    return next(error);
   }
 };
 
 // POST /api/salesmen
-export const addSalesman = async (req, res) => {
+export const addSalesman = async (req, res, next) => {
   try {
     const { name, productId } = req.body;
     if (!name || !productId) {
@@ -51,12 +51,12 @@ export const addSalesman = async (req, res) => {
     const salesman = await Salesman.create({ name, productId: actualProductId });
     return sendSuccess(res, salesman, 201);
   } catch (error) {
-    return sendError(res, error);
+    return next(error);
   }
 };
 
 // PUT /api/salesmen/:id (Update Salesman)
-export const updateSalesman = async (req, res) => {
+export const updateSalesman = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, productId } = req.body;
@@ -72,12 +72,12 @@ export const updateSalesman = async (req, res) => {
 
     return sendSuccess(res, updated, 200, 'Salesman updated successfully');
   } catch (error) {
-    return sendError(res, error);
+    return next(error);
   }
 };
 
 // DELETE /api/salesmen/:id (Delete Salesman)
-export const deleteSalesman = async (req, res) => {
+export const deleteSalesman = async (req, res, next) => {
   try {
     const { id } = req.params;
     const deleted = await Salesman.delete(id);
@@ -88,6 +88,6 @@ export const deleteSalesman = async (req, res) => {
 
     return sendSuccess(res, deleted, 200, 'Salesman deleted successfully');
   } catch (error) {
-    return sendError(res, error);
+    return next(error);
   }
 };

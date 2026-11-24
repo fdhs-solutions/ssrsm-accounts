@@ -2,7 +2,7 @@ import { Product, DailyStockEntry } from '../models/index.js';
 import { sendSuccess, sendError, sendBadRequest } from '../utils/response.js';
 
 // GET /api/entries/opening-stock
-export const getOpeningStock = async (req, res) => {
+export const getOpeningStock = async (req, res, next) => {
   try {
     let { productId, date } = req.query;
     if (!productId) {
@@ -40,12 +40,12 @@ export const getOpeningStock = async (req, res) => {
       } : null,
     });
   } catch (error) {
-    return sendError(res, error);
+    return next(error);
   }
 };
 
 // GET /api/entries (Fetch with optional filters: productId, startDate, endDate)
-export const getEntries = async (req, res) => {
+export const getEntries = async (req, res, next) => {
   try {
     let { productId, startDate, endDate } = req.query;
 
@@ -62,12 +62,12 @@ export const getEntries = async (req, res) => {
     const entries = await DailyStockEntry.findAll({ productId, startDate, endDate });
     return sendSuccess(res, entries);
   } catch (error) {
-    return sendError(res, error);
+    return next(error);
   }
 };
 
 // POST /api/entries (Create Daily Stock Entry)
-export const createStockEntry = async (req, res) => {
+export const createStockEntry = async (req, res, next) => {
   try {
     let {
       entryDate,
@@ -133,12 +133,12 @@ export const createStockEntry = async (req, res) => {
 
     return sendSuccess(res, newEntry, 201, 'Stock entry created successfully');
   } catch (error) {
-    return sendError(res, error);
+    return next(error);
   }
 };
 
 // PUT /api/entries/:id (Update Daily Stock Entry)
-export const updateStockEntry = async (req, res) => {
+export const updateStockEntry = async (req, res, next) => {
   try {
     const { id } = req.params;
     const existing = await DailyStockEntry.findById(id);
@@ -193,12 +193,12 @@ export const updateStockEntry = async (req, res) => {
 
     return sendSuccess(res, updated, 200, 'Stock entry updated successfully');
   } catch (error) {
-    return sendError(res, error);
+    return next(error);
   }
 };
 
 // DELETE /api/entries/:id (Delete Daily Stock Entry)
-export const deleteStockEntry = async (req, res) => {
+export const deleteStockEntry = async (req, res, next) => {
   try {
     const { id } = req.params;
     const deleted = await DailyStockEntry.delete(id);
@@ -209,6 +209,21 @@ export const deleteStockEntry = async (req, res) => {
 
     return sendSuccess(res, deleted, 200, 'Stock entry deleted successfully');
   } catch (error) {
-    return sendError(res, error);
+    return next(error);
+  }
+};
+
+// POST /api/entries/bulk-delete (Delete Multiple Stock Entries in 1 single API call)
+export const deleteMultipleStockEntries = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return sendBadRequest(res, 'Array of entry ids is required');
+    }
+
+    const deletedRows = await DailyStockEntry.deleteMany(ids);
+    return sendSuccess(res, { deletedCount: deletedRows.length, deletedIds: deletedRows.map(r => r.id) }, 200, `${deletedRows.length} entries deleted successfully`);
+  } catch (error) {
+    return next(error);
   }
 };
