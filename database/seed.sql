@@ -3,7 +3,8 @@
 INSERT INTO products (name, category, default_opening_stock) VALUES
 ('Dettol', 'Hygiene', 145.00),
 ('Dabur', 'Health', 110.00),
-('Diaper', 'Baby Care', 80.00)
+('Diaper', 'Baby Care', 80.00),
+('Wholesale', 'Wholesale', 0.00)
 ON CONFLICT (name) DO NOTHING;
 
 -- Initial Salesmen

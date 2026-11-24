@@ -21,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic> _dashboardData = {};
 
   final List<String> _periods = ['Today', 'Week', '1 Month', '1 Year', 'Custom'];
-  final List<String> _products = ['All', 'Dettol', 'Dabur', 'Diaper'];
+  final List<String> _products = ['All', 'Dettol', 'Dabur', 'Diaper', 'Wholesale'];
 
   @override
   void initState() {

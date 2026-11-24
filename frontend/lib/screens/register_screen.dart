@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:html' as html;
+import 'package:url_launcher/url_launcher.dart';
+import '../utils/platform_util.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/helpers.dart';
@@ -24,7 +25,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // Edit / Delete State
   String? _editingId;
-  String? _confirmDeleteId;
   DateTime? _searchByDate;
 
   final _editSalesCtrl = TextEditingController();
@@ -38,7 +38,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _editNoteCtrl = TextEditingController();
 
   final List<String> _filters = ['Today', 'Week', 'Month', 'Year', 'Custom'];
-  final List<String> _brands = ['Dettol', 'Dabur', 'Diaper'];
+  final List<String> _brands = ['Dettol', 'Dabur', 'Diaper', 'Wholesale'];
+
+  // Selection mode for deleting entries (photo gallery style)
+  final Set<String> _selectedEntryIds = {};
+  bool _isSelectionMode = false;
+  bool _isBulkDeleting = false;
 
   @override
   void initState() {
@@ -117,7 +122,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _startEditing(dynamic row) {
     setState(() {
       _editingId = row['id'];
-      _confirmDeleteId = null;
       _editSalesCtrl.text = formatNum(row['daily_sales']);
       _editStockReceivedCtrl.text = formatNum(row['stock_received']);
       _editNewStockCtrl.text = formatNum(row['new_stock']);
@@ -157,10 +161,92 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _deleteEntry(String id) async {
     final deleted = await ApiService.deleteEntry(id);
     if (deleted) {
-      setState(() => _confirmDeleteId = null);
+      _loadEntries();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Entry deleted successfully!')),
+        );
+      }
+    }
+  }
+
+  void _toggleSelectEntry(String id) {
+    setState(() {
+      if (_selectedEntryIds.contains(id)) {
+        _selectedEntryIds.remove(id);
+        if (_selectedEntryIds.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedEntryIds.add(id);
+        _isSelectionMode = true;
+      }
+    });
+  }
+
+  void _selectAllEntries(List<dynamic> list) {
+    setState(() {
+      final allIds = list.map((e) => e['id'].toString()).toSet();
+      if (_selectedEntryIds.length == allIds.length) {
+        _selectedEntryIds.clear();
+        _isSelectionMode = false;
+      } else {
+        _selectedEntryIds.addAll(allIds);
+        _isSelectionMode = true;
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectedEntryIds.clear();
+      _isSelectionMode = false;
+    });
+  }
+
+  Future<void> _deleteSelectedEntries() async {
+    if (_selectedEntryIds.isEmpty) return;
+
+    final count = _selectedEntryIds.length;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete $count ${count > 1 ? "Entries" : "Entry"}?'),
+        content: Text('Are you sure you want to delete $count selected ${count > 1 ? "entries" : "entry"}? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.bad),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isBulkDeleting = true);
+    int successCount = 0;
+    final idsToDelete = List<String>.from(_selectedEntryIds);
+
+    for (final id in idsToDelete) {
+      final ok = await ApiService.deleteEntry(id);
+      if (ok) successCount++;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isBulkDeleting = false;
+        _selectedEntryIds.clear();
+        _isSelectionMode = false;
+      });
       _loadEntries();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Entry deleted successfully!')),
+        SnackBar(content: Text('$successCount ${successCount > 1 ? "entries" : "entry"} deleted successfully!')),
       );
     }
   }
@@ -767,6 +853,102 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ],
           ),
           const SizedBox(height: 12),
+          // Bulk Selection Action Bar (appears when entries are selected or long-pressed)
+          if (_isSelectionMode) ...[
+            Container(
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF), // Soft Indigo/Blue tint
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBFDBFE), width: 1.5),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: 330,
+                  child: Row(
+                    children: [
+                      // Selected count pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.pri,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(
+                          '${_selectedEntryIds.length} Selected',
+                          style: GoogleFonts.mukta(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Select All / Deselect All Button
+                      InkWell(
+                        onTap: () => _selectAllEntries(filteredForEdit),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _selectedEntryIds.length == filteredForEdit.length ? Icons.deselect : Icons.select_all,
+                                size: 16,
+                                color: AppColors.pri,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                _selectedEntryIds.length == filteredForEdit.length ? 'Deselect' : 'Select All',
+                                style: GoogleFonts.mukta(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.pri),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const Spacer(),
+
+                      // Delete Selected Button (Clean, single-line pill button)
+                      SizedBox(
+                        height: 32,
+                        child: ElevatedButton.icon(
+                          onPressed: _isBulkDeleting ? null : _deleteSelectedEntries,
+                          icon: _isBulkDeleting
+                              ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.delete_outline, size: 16, color: Colors.white),
+                          label: Text(
+                            'Delete',
+                            style: GoogleFonts.mukta(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFDC2626),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+
+                      // Close selection mode
+                      InkWell(
+                        onTap: _clearSelection,
+                        borderRadius: BorderRadius.circular(20),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(Icons.close, size: 18, color: Color(0xFF64748B)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
           Text(
             'Find entry by date',
             style: GoogleFonts.mukta(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mut),
@@ -881,79 +1063,78 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
           ...filteredForEdit.map((e) {
-            final id = e['id'];
+            final id = e['id'].toString();
+            final isSelected = _selectedEntryIds.contains(id);
             final dateStr = formatDate((e['entry_date'] ?? '').toString());
             final sales = formatNumWithZero(e['daily_sales']);
             final closing = formatNumWithZero(e['closing_stock']);
             final sm = e['salesman_name'] != null ? '${e['salesman_name']} · ' : '';
 
-            return Container(
-              padding: const EdgeInsets.symmetric(vertical: 11),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppColors.line)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          dateStr,
-                          style: GoogleFonts.mukta(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.ink),
-                        ),
-                        Text(
-                          '$sm Sales $sales · Closing $closing',
-                          style: GoogleFonts.mukta(fontSize: 13, color: AppColors.mut),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      OutlinedButton(
-                        onPressed: () => _startEditing(e),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(60, 36),
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                        ),
-                        child: const Text('Edit'),
+            return InkWell(
+              onLongPress: () {
+                _toggleSelectEntry(id);
+              },
+              onTap: () {
+                if (_isSelectionMode) {
+                  _toggleSelectEntry(id);
+                }
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                margin: const EdgeInsets.symmetric(vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFFEFF6FF) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  border: isSelected
+                      ? Border.all(color: const Color(0xFF3B82F6), width: 1.5)
+                      : const Border(bottom: BorderSide(color: AppColors.line)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Checkbox or Selection Indicator (like photo gallery selection)
+                    if (_isSelectionMode) ...[
+                      Checkbox(
+                        value: isSelected,
+                        activeColor: const Color(0xFF2563EB),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        onChanged: (val) {
+                          _toggleSelectEntry(id);
+                        },
                       ),
-                      const SizedBox(width: 8),
-                      if (_confirmDeleteId == id) ...[
-                        ElevatedButton(
-                          onPressed: () => _deleteEntry(id),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.bad,
-                            minimumSize: const Size(70, 36),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                      const SizedBox(width: 4),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            dateStr,
+                            style: GoogleFonts.mukta(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.ink),
                           ),
-                          child: const Text('Confirm', style: TextStyle(color: Colors.white, fontSize: 13)),
-                        ),
-                        const SizedBox(width: 6),
-                        OutlinedButton(
-                          onPressed: () => setState(() => _confirmDeleteId = null),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(60, 36),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          Text(
+                            '$sm Sales $sales · Closing $closing',
+                            style: GoogleFonts.mukta(fontSize: 13, color: AppColors.mut),
                           ),
-                          child: const Text('Cancel', style: TextStyle(fontSize: 13)),
-                        ),
-                      ] else ...[
+                        ],
+                      ),
+                    ),
+                    Row(
+                      children: [
                         OutlinedButton(
-                          onPressed: () => setState(() => _confirmDeleteId = id),
+                          onPressed: () => _startEditing(e),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.bad,
                             minimumSize: const Size(60, 36),
                             padding: const EdgeInsets.symmetric(horizontal: 10),
                           ),
-                          child: const Text('Delete'),
+                          child: const Text('Edit'),
                         ),
                       ],
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             );
           }),
@@ -1301,16 +1482,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
 
     if (kIsWeb) {
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'SSRSM_Register_$_selectedBrand.pdf')
-        ..target = '_blank';
-      html.document.body?.children.add(anchor);
-      anchor.click();
-      anchor.remove();
+      downloadWebPdf(url, 'SSRSM_Register_$_selectedBrand.pdf');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Downloading PDF: $url')),
-      );
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch: $url')),
+        );
+      }
     }
   }
 
@@ -1326,11 +1507,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (kIsWeb) {
       // In web browser, opening the PDF in a new tab allows direct viewing and Ctrl+P / native print
-      html.window.open(url, '_blank');
+      openWebUrl(url);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Printing PDF: $url')),
-      );
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch: $url')),
+        );
+      }
     }
   }
 

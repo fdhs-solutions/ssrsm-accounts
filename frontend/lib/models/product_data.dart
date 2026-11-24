@@ -3,6 +3,7 @@ class ProductData {
     {'name': 'Dettol', 'category': 'Hygiene'},
     {'name': 'Dabur', 'category': 'Health'},
     {'name': 'Diaper', 'category': 'Baby Care'},
+    {'name': 'Wholesale', 'category': 'Wholesale'},
   ];
 
   static List<String> get productNames =>

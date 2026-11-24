@@ -20,7 +20,7 @@ class _SalesmenScreenState extends State<SalesmenScreen> {
   String? _editingId;
   String? _confirmDeleteId;
 
-  final List<String> _brands = ['Dettol', 'Dabur', 'Diaper'];
+  final List<String> _brands = ['Dettol', 'Dabur', 'Diaper', 'Wholesale'];
 
   @override
   void initState() {
