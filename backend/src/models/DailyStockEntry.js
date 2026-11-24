@@ -178,6 +178,21 @@ export const DailyStockEntry = {
   },
 
   /**
+   * Soft delete multiple entries in ONE single query
+   */
+  async deleteMany(ids) {
+    if (!ids || ids.length === 0) return [];
+    const result = await db.query(
+      `UPDATE daily_stock_entries 
+       SET is_delete = TRUE, is_active = FALSE, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = ANY($1::uuid[]) AND is_delete = FALSE 
+       RETURNING id`,
+      [ids]
+    );
+    return result.rows;
+  },
+
+  /**
    * Find entries with filters
    */
   async findAll({ productId, startDate, endDate } = {}) {

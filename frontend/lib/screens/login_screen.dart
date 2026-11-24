@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../utils/platform_util.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
@@ -240,9 +241,20 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _openUrl(String url) {
+  Future<void> _openUrl(String url) async {
     if (kIsWeb) {
       openWebUrl(url);
+    } else {
+      try {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          await launchUrl(uri);
+        }
+      } catch (e) {
+        debugPrint('Could not launch $url: $e');
+      }
     }
   }
 

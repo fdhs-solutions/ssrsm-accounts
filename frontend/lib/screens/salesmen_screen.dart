@@ -50,17 +50,24 @@ class _SalesmenScreenState extends State<SalesmenScreen> {
       return;
     }
 
-    final res = await ApiService.addSalesman(name, _selectedBrand);
-    if (res != null) {
+    final (ok, errorMsg) = await ApiService.addSalesman(name, _selectedBrand);
+    if (ok) {
       _newSalesmanCtrl.clear();
       _loadSalesmen();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sales man added to $_selectedBrand')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sales man added to $_selectedBrand')),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to add sales man')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg ?? 'Failed to add sales man'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
     }
   }
 

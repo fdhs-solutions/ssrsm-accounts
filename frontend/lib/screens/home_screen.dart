@@ -74,6 +74,63 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _confirmLogout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
+        title: Text(
+          'Confirm Logout',
+          style: GoogleFonts.sora(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: AppColors.ink,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to logout?',
+          style: GoogleFonts.mukta(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: AppColors.mut,
+          ),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          // No Button (Cancel)
+          OutlinedButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.ink,
+              side: const BorderSide(color: Color(0xFFCBD5E1)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            ),
+            child: const Text('No', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+          const SizedBox(width: 8),
+          // Yes Button (Logout confirm)
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626), // Red
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            ),
+            child: const Text('Yes', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout == true) {
+      widget.onLogout();
+    }
+  }
+
   String _getChartPeriodSubtitle() {
     if (_selectedPeriod == 'Today') {
       return dateLabel(DateTime.now());
@@ -165,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         ElevatedButton.icon(
-          onPressed: widget.onLogout,
+          onPressed: _confirmLogout,
           icon: const Icon(Icons.logout, size: 18, color: AppColors.bad),
           label: Text(
             'Logout',

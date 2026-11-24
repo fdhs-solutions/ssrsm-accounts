@@ -4,7 +4,7 @@ import { sendSuccess, sendError } from '../utils/response.js';
 
 // GET /api/dashboard
 // Optional query params: ?date=YYYY-MM-DD or ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&productId=uuid
-export const getDashboardData = async (req, res) => {
+export const getDashboardData = async (req, res, next) => {
   try {
     let { date, startDate, endDate, productId } = req.query;
 
@@ -188,6 +188,6 @@ export const getDashboardData = async (req, res) => {
 
     return sendSuccess(res, responseData);
   } catch (error) {
-    return sendError(res, error);
+    return next(error);
   }
 };

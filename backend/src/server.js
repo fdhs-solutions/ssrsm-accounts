@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import db from './config/db.js';
 import apiRoutes from './routes/api.js';
+import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 
 dotenv.config();
 
@@ -28,6 +29,12 @@ app.get('/api/health', async (req, res) => {
     res.status(500).json({ status: 'ERROR', error: error.message });
   }
 });
+
+// 404 handler for unknown routes
+app.use(notFoundHandler);
+
+// Global Error Handler Middleware (Catches all next(err) & unhandled errors)
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

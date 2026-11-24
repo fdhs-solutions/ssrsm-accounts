@@ -28,7 +28,7 @@ function fmtDate(iso) {
 }
 
 // GET /api/entries/pdf
-export const generateRegisterPdf = async (req, res) => {
+export const generateRegisterPdf = async (req, res, next) => {
   try {
     let { productId, productName, startDate, endDate } = req.query;
 
@@ -331,6 +331,6 @@ export const generateRegisterPdf = async (req, res) => {
     doc.end();
   } catch (error) {
     console.error('Error generating PDF:', error);
-    return sendError(res, error);
+    return next(error);
   }
 };
