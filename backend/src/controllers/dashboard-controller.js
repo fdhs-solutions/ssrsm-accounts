@@ -4,7 +4,7 @@ import { sendSuccess, sendError } from '../utils/response.js';
 
 // GET /api/dashboard
 // Optional query params: ?date=YYYY-MM-DD or ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&productId=uuid
-export const getDashboardData = async (req, res) => {
+export const getDashboardData = async (req, res, next) => {
   try {
     let { date, startDate, endDate, productId } = req.query;
 
@@ -23,7 +23,7 @@ export const getDashboardData = async (req, res) => {
     }
 
     // Base WHERE conditions
-    const conditions = ['1=1'];
+    const conditions = ['e.is_delete = FALSE'];
     const params = [];
 
     if (date) {
@@ -48,21 +48,54 @@ export const getDashboardData = async (req, res) => {
     const whereClause = conditions.join(' AND ');
 
     // 1. Total Metrics & Collection by Mode
+    // Business Rule: For same date multiple entries, Opening Stock, New Stock, Daily Sales,
+    // Stock Received and Closing Stock should be counted only ONCE per date (from the first entry).
+    // Collection amounts (Cash, Cheque, RTGS, Auto, Credit) are summed across all entries.
     const modeQuery = `
+      WITH distinct_dates AS (
+        SELECT DISTINCT ON (e.product_id, e.entry_date)
+          e.opening_stock,
+          e.closing_stock,
+          e.daily_sales,
+          e.new_stock,
+          e.stock_received
+        FROM daily_stock_entries e
+        WHERE ${whereClause}
+        ORDER BY e.product_id, e.entry_date, e.created_at ASC
+      ),
+      stock_totals AS (
+        SELECT 
+          COALESCE(SUM(opening_stock), 0) AS total_opening_stock,
+          COALESCE(SUM(closing_stock), 0) AS total_closing_stock,
+          COALESCE(SUM(daily_sales), 0) AS total_sales,
+          COALESCE(SUM(new_stock), 0) AS total_new_stock,
+          COALESCE(SUM(stock_received), 0) AS total_stock_received
+        FROM distinct_dates
+      ),
+      collection_totals AS (
+        SELECT 
+          COALESCE(SUM(e.cash_amount), 0) AS total_cash,
+          COALESCE(SUM(e.cheque_amount), 0) AS total_cheque,
+          COALESCE(SUM(e.rtgs_amount), 0) AS total_rtgs,
+          COALESCE(SUM(e.auto_amount), 0) AS total_auto,
+          COALESCE(SUM(e.credit_amount), 0) AS total_credit,
+          COALESCE(SUM(e.total_collection), 0) AS total_collection
+        FROM daily_stock_entries e
+        WHERE ${whereClause}
+      )
       SELECT 
-        COALESCE(SUM(e.opening_stock), 0) AS total_opening_stock,
-        COALESCE(SUM(e.closing_stock), 0) AS total_closing_stock,
-        COALESCE(SUM(e.cash_amount), 0) AS total_cash,
-        COALESCE(SUM(e.cheque_amount), 0) AS total_cheque,
-        COALESCE(SUM(e.rtgs_amount), 0) AS total_rtgs,
-        COALESCE(SUM(e.auto_amount), 0) AS total_auto,
-        COALESCE(SUM(e.credit_amount), 0) AS total_credit,
-        COALESCE(SUM(e.total_collection), 0) AS total_collection,
-        COALESCE(SUM(e.daily_sales), 0) AS total_sales,
-        COALESCE(SUM(e.new_stock), 0) AS total_new_stock,
-        COALESCE(SUM(e.stock_received), 0) AS total_stock_received
-      FROM daily_stock_entries e
-      WHERE ${whereClause}
+        s.total_opening_stock,
+        s.total_closing_stock,
+        s.total_sales,
+        s.total_new_stock,
+        s.total_stock_received,
+        c.total_cash,
+        c.total_cheque,
+        c.total_rtgs,
+        c.total_auto,
+        c.total_credit,
+        c.total_collection
+      FROM stock_totals s, collection_totals c
     `;
 
     // 2. Collection by Salesman
@@ -155,6 +188,6 @@ export const getDashboardData = async (req, res) => {
 
     return sendSuccess(res, responseData);
   } catch (error) {
-    return sendError(res, error);
+    return next(error);
   }
 };

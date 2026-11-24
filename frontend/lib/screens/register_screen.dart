@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../utils/platform_util.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/helpers.dart';
@@ -22,7 +25,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // Edit / Delete State
   String? _editingId;
-  String? _confirmDeleteId;
   DateTime? _searchByDate;
 
   final _editSalesCtrl = TextEditingController();
@@ -36,7 +38,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _editNoteCtrl = TextEditingController();
 
   final List<String> _filters = ['Today', 'Week', 'Month', 'Year', 'Custom'];
-  final List<String> _brands = ['Dettol', 'Dabur', 'Diaper'];
+  final List<String> _brands = ['Dettol', 'Dabur', 'Diaper', 'Wholesale'];
+
+  // Selection mode for deleting entries (photo gallery style)
+  final Set<String> _selectedEntryIds = {};
+  bool _isSelectionMode = false;
+  bool _isBulkDeleting = false;
 
   @override
   void initState() {
@@ -50,7 +57,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     String? startDate;
     String? endDate;
 
-    if (_selectedFilter == 'Today') {
+    // If a search date is selected in "Find entry by date", fetch for that date specifically
+    if (_searchByDate != null) {
+      final s = dateISO(_searchByDate!);
+      startDate = s;
+      endDate = s;
+    } else if (_selectedFilter == 'Today') {
       startDate = todayISO();
       endDate = todayISO();
     } else if (_selectedFilter == 'Week') {
@@ -73,6 +85,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final list = await ApiService.getEntries(
         productId: _selectedBrand,
+        productName: _selectedBrand,
         startDate: startDate,
         endDate: endDate,
       );
@@ -109,7 +122,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _startEditing(dynamic row) {
     setState(() {
       _editingId = row['id'];
-      _confirmDeleteId = null;
       _editSalesCtrl.text = formatNum(row['daily_sales']);
       _editStockReceivedCtrl.text = formatNum(row['stock_received']);
       _editNewStockCtrl.text = formatNum(row['new_stock']);
@@ -149,10 +161,87 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _deleteEntry(String id) async {
     final deleted = await ApiService.deleteEntry(id);
     if (deleted) {
-      setState(() => _confirmDeleteId = null);
+      _loadEntries();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Entry deleted successfully!')),
+        );
+      }
+    }
+  }
+
+  void _toggleSelectEntry(String id) {
+    setState(() {
+      if (_selectedEntryIds.contains(id)) {
+        _selectedEntryIds.remove(id);
+        if (_selectedEntryIds.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedEntryIds.add(id);
+        _isSelectionMode = true;
+      }
+    });
+  }
+
+  void _selectAllEntries(List<dynamic> list) {
+    setState(() {
+      final allIds = list.map((e) => e['id'].toString()).toSet();
+      if (_selectedEntryIds.length == allIds.length) {
+        _selectedEntryIds.clear();
+        _isSelectionMode = false;
+      } else {
+        _selectedEntryIds.addAll(allIds);
+        _isSelectionMode = true;
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectedEntryIds.clear();
+      _isSelectionMode = false;
+    });
+  }
+
+  Future<void> _deleteSelectedEntries() async {
+    if (_selectedEntryIds.isEmpty) return;
+
+    final count = _selectedEntryIds.length;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete $count ${count > 1 ? "Entries" : "Entry"}?'),
+        content: Text('Are you sure you want to delete $count selected ${count > 1 ? "entries" : "entry"}? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.bad),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isBulkDeleting = true);
+    final idsToDelete = List<String>.from(_selectedEntryIds);
+    final successCount = await ApiService.deleteEntriesBulk(idsToDelete);
+
+    if (mounted) {
+      setState(() {
+        _isBulkDeleting = false;
+        _selectedEntryIds.clear();
+        _isSelectionMode = false;
+      });
       _loadEntries();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Entry deleted successfully!')),
+        SnackBar(content: Text('$successCount ${successCount > 1 ? "entries" : "entry"} deleted successfully!')),
       );
     }
   }
@@ -194,6 +283,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 12),
                   _buildTableCard(),
                   const SizedBox(height: 20),
+                  _buildExportActionsCard(),
+                  const SizedBox(height: 20),
                   _buildEditDeleteCard(),
                   const SizedBox(height: 40),
                 ],
@@ -207,7 +298,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _buildHeaderBanner() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFFB45309), Color(0xFFF59E0B)],
@@ -226,27 +317,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.table_chart, color: Colors.white, size: 24),
+            child: const Icon(Icons.table_chart, color: Colors.white, size: 22),
           ),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Register & Ledger',
-                style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
-              ),
-              Text(
-                'View, filter, edit & manage stock ledger entries',
-                style: GoogleFonts.mukta(fontSize: 13, color: Colors.white.withOpacity(0.9)),
-              ),
-            ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Register & Ledger',
+                  style: GoogleFonts.sora(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
+                ),
+                Text(
+                  'View, filter, edit & manage stock ledger entries',
+                  style: GoogleFonts.mukta(fontSize: 12, color: Colors.white.withOpacity(0.9), height: 1.1),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -268,28 +364,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: _filters.map((f) {
-                final isSelected = _selectedFilter == f;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(f),
-                    selected: isSelected,
-                    onSelected: (val) {
-                      setState(() => _selectedFilter = f);
+              children: [
+                ..._filters.map((f) {
+                  final isSelected = _selectedFilter == f;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(f),
+                      selected: isSelected,
+                      onSelected: (val) {
+                        setState(() => _selectedFilter = f);
+                        _loadEntries();
+                      },
+                      selectedColor: AppColors.pri,
+                      backgroundColor: AppColors.bg,
+                      labelStyle: GoogleFonts.mukta(
+                        color: isSelected ? Colors.white : AppColors.ink,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      showCheckmark: false,
+                    ),
+                  );
+                }),
+                // Clear Filter Button
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _selectedFilter = 'Today';
+                        _customStartDate = null;
+                        _customEndDate = null;
+                        _searchByDate = null;
+                      });
                       _loadEntries();
                     },
-                    selectedColor: AppColors.pri,
-                    backgroundColor: AppColors.bg,
-                    labelStyle: GoogleFonts.mukta(
-                      color: isSelected ? Colors.white : AppColors.ink,
-                      fontWeight: FontWeight.w600,
+                    icon: const Icon(Icons.filter_alt_off, size: 16, color: Colors.white),
+                    label: const Text('Clear Filter', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF4444), // Red color
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 1,
                     ),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    showCheckmark: false,
                   ),
-                );
-              }).toList(),
+                ),
+              ],
             ),
           ),
           if (_selectedFilter == 'Custom') ...[
@@ -310,10 +431,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         _loadEntries();
                       }
                     },
-                    child: Text(_customStartDate != null ? dateLabel(_customStartDate!) : 'From Date'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      minimumSize: const Size(0, 38),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      _customStartDate != null ? dateLabel(_customStartDate!) : 'From Date',
+                      style: GoogleFonts.mukta(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () async {
@@ -328,7 +457,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         _loadEntries();
                       }
                     },
-                    child: Text(_customEndDate != null ? dateLabel(_customEndDate!) : 'To Date'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      minimumSize: const Size(0, 38),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      _customEndDate != null ? dateLabel(_customEndDate!) : 'To Date',
+                      style: GoogleFonts.mukta(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedFilter = 'Today';
+                      _customStartDate = null;
+                      _customEndDate = null;
+                    });
+                    _loadEntries();
+                  },
+                  icon: const Icon(Icons.close, color: Color(0xFFEF4444)),
+                  tooltip: 'Close Custom',
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.tint,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ],
@@ -341,6 +495,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _buildBrandCard() {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.card,
@@ -422,119 +577,156 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     const borderColor = Color(0xFF1F2F8F);
     const headerBg = Color(0xFFEEF0FF);
+    const double totalCollectionWidth = 65 + 65 + 65 + 65 + 65 + 95; // 420px
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
+        border: Border.fromBorderSide(BorderSide(color: borderColor, width: 1.2)),
+        boxShadow: [
           BoxShadow(color: Color.fromRGBO(20, 23, 58, 0.08), blurRadius: 16, offset: Offset(0, 4)),
         ],
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: Table(
-          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          border: TableBorder.all(color: borderColor, width: 1.2),
-          columnWidths: const {
-            0: FixedColumnWidth(44),   // S.No.
-            1: FixedColumnWidth(85),   // Date
-            2: FixedColumnWidth(75),   // Opening Stock
-            3: FixedColumnWidth(65),   // New Stock
-            4: FixedColumnWidth(70),   // Daily Sales
-            5: FixedColumnWidth(75),   // Stock Received
-            6: FixedColumnWidth(95),   // Total Closing Stock
-            7: FixedColumnWidth(65),   // Cash
-            8: FixedColumnWidth(65),   // Cheque
-            9: FixedColumnWidth(65),   // RTGS
-            10: FixedColumnWidth(65),  // Auto
-            11: FixedColumnWidth(65),  // Credit
-            12: FixedColumnWidth(95),  // Sales man
-            13: FixedColumnWidth(110), // Note
-          },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Row 1
-            TableRow(
-              decoration: const BoxDecoration(color: headerBg),
-              children: [
-                _th2('S.NO.', rowspan: true),
-                _th2('DATE', rowspan: true),
-                _th2('OPENING\nSTOCK', rowspan: true),
-                _th2('NEW\nSTOCK', rowspan: true),
-                _th2('DAILY\nSALES', rowspan: true),
-                _th2('STOCK\nRECEIVED', rowspan: true), // strictly Stock Received
-                _th2('TOTAL CLOSING\nSTOCK', rowspan: true),
-                _thGroup('COLLECTION'),
-                _thGroup(''),
-                _thGroup(''),
-                _thGroup(''),
-                _thGroup(''),
-                _thGroup(''),
-                _th2('NOTE', rowspan: true),
-              ],
-            ),
-            // Header Row 2 (Sub-headers under COLLECTION)
-            TableRow(
-              decoration: const BoxDecoration(color: headerBg),
-              children: [
-                const SizedBox(height: 0),
-                const SizedBox(height: 0),
-                const SizedBox(height: 0),
-                const SizedBox(height: 0),
-                const SizedBox(height: 0),
-                const SizedBox(height: 0),
-                const SizedBox(height: 0),
-                _thSub('CASH'),
-                _thSub('CHEQUE'),
-                _thSub('RTGS'),
-                _thSub('AUTO'),
-                _thSub('CREDIT'),
-                _thSub('SALES MAN'),
-                const SizedBox(height: 0),
-              ],
-            ),
-            // Data Rows
-            ..._entries.asMap().entries.map((item) {
-              final idx = item.key + 1;
-              final e = item.value;
-              return TableRow(
+            // ── Tier 1 & 2 Header Row ──
+            Container(
+              decoration: const BoxDecoration(
+                color: headerBg,
+                border: Border(
+                  bottom: BorderSide(color: borderColor, width: 1.2),
+                ),
+              ),
+              child: Row(
                 children: [
-                  _td('$idx.', align: TextAlign.center),
-                  _td(formatDate((e['entry_date'] ?? '').toString()), align: TextAlign.center),
-                  _td(formatNumWithZero(e['opening_stock'])),
-                  _td(formatNum(e['new_stock'])),
-                  _td(formatNumWithZero(e['daily_sales'])),
-                  _td(formatNum(e['stock_received'])),
-                  _td(formatNumWithZero(e['closing_stock'])),
-                  _td(formatNum(e['cash_amount'])),
-                  _td(formatNum(e['cheque_amount'])),
-                  _td(formatNum(e['rtgs_amount'])),
-                  _td(formatNum(e['auto_amount'])),
-                  _td(formatNum(e['credit_amount'])),
-                  _td(e['salesman_name'] ?? '', align: TextAlign.left),
-                  _td(e['note'] ?? '', align: TextAlign.left),
+                  _buildStandaloneTh('S.NO.', 44),
+                  _buildStandaloneTh('DATE', 85),
+                  _buildStandaloneTh('OPENING\nSTOCK', 75),
+                  _buildStandaloneTh('NEW\nSTOCK', 65),
+                  _buildStandaloneTh('DAILY\nSALES', 70),
+                  _buildStandaloneTh('STOCK\nRECEIVED', 75),
+                  _buildStandaloneTh('TOTAL CLOSING\nSTOCK', 95),
+                  // Unified COLLECTION block (Top Header + 6 Sub-headers)
+                  SizedBox(
+                    width: totalCollectionWidth,
+                    height: 56,
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 28,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: borderColor, width: 1.2),
+                              right: BorderSide(color: borderColor, width: 1.2),
+                            ),
+                          ),
+                          child: Text(
+                            'COLLECTION',
+                            style: GoogleFonts.mukta(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                              color: const Color(0xFF14243A),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 28,
+                          child: Row(
+                            children: [
+                              _buildSubTh('CASH', 65),
+                              _buildSubTh('CHEQUE', 65),
+                              _buildSubTh('RTGS', 65),
+                              _buildSubTh('AUTO', 65),
+                              _buildSubTh('CREDIT', 65),
+                              _buildSubTh('SALES MAN', 95),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _buildStandaloneTh('NOTE', 110, isLast: true),
                 ],
-              );
-            }),
-            // Footer Totals Row
-            TableRow(
-              decoration: const BoxDecoration(color: headerBg),
-              children: [
-                _tdBold('Total', align: TextAlign.center),
-                _tdBold(''),
-                _tdBold(formatNumWithZero(totOpen)),
-                _tdBold(formatNumWithZero(totNew)),
-                _tdBold(formatNumWithZero(totSales)),
-                _tdBold(formatNumWithZero(totRec)),
-                _tdBold(formatNumWithZero(totClose)),
-                _tdBold(formatNumWithZero(totCash)),
-                _tdBold(formatNumWithZero(totCheque)),
-                _tdBold(formatNumWithZero(totRtgs)),
-                _tdBold(formatNumWithZero(totAuto)),
-                _tdBold(formatNumWithZero(totCredit)),
-                _tdBold(''),
-                _tdBold(''),
-              ],
+              ),
+            ),
+            // ── Data Rows ──
+            ...() {
+              int currentSno = 0;
+              String? lastDate;
+
+              return _entries.map((e) {
+                final dateStr = (e['entry_date'] ?? '').toString().split('T')[0];
+                final bool isSubsequentEntry = (dateStr == lastDate);
+
+                String displaySno = '';
+                if (!isSubsequentEntry) {
+                  currentSno++;
+                  lastDate = dateStr;
+                  displaySno = '$currentSno.';
+                }
+
+                final rowColor = isSubsequentEntry ? const Color(0xFFFFF3DC) : Colors.transparent;
+
+                return Container(
+                  decoration: BoxDecoration(
+                    color: rowColor,
+                    border: const Border(
+                      bottom: BorderSide(color: borderColor, width: 1.2),
+                    ),
+                  ),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        _cell(displaySno, 44, align: TextAlign.center),
+                        _cell(formatDate((e['entry_date'] ?? '').toString()), 85, align: TextAlign.center),
+                        _cell(formatNumWithZero(e['opening_stock']), 75),
+                        _cell(formatNum(e['new_stock']), 65),
+                        _cell(formatNumWithZero(e['daily_sales']), 70),
+                        _cell(formatNum(e['stock_received']), 75),
+                        _cell(formatNumWithZero(e['closing_stock']), 95),
+                        _cell(formatNum(e['cash_amount']), 65),
+                        _cell(formatNum(e['cheque_amount']), 65),
+                        _cell(formatNum(e['rtgs_amount']), 65),
+                        _cell(formatNum(e['auto_amount']), 65),
+                        _cell(formatNum(e['credit_amount']), 65),
+                        _cell(e['salesman_name']?.toString() ?? '', 95, align: TextAlign.left),
+                        _cell(e['note']?.toString() ?? '', 110, align: TextAlign.left, isLast: true),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList();
+            }(),
+            // ── Footer Totals Row ──
+            Container(
+              decoration: const BoxDecoration(
+                color: headerBg,
+              ),
+              child: IntrinsicHeight(
+                child: Row(
+                  children: [
+                    _cell('Total', 44, align: TextAlign.center, isBold: true),
+                    _cell('', 85, isBold: true),
+                    _cell(formatNumWithZero(totOpen), 75, isBold: true),
+                    _cell(formatNumWithZero(totNew), 65, isBold: true),
+                    _cell(formatNumWithZero(totSales), 70, isBold: true),
+                    _cell(formatNumWithZero(totRec), 75, isBold: true),
+                    _cell(formatNumWithZero(totClose), 95, isBold: true),
+                    _cell(formatNumWithZero(totCash), 65, isBold: true),
+                    _cell(formatNumWithZero(totCheque), 65, isBold: true),
+                    _cell(formatNumWithZero(totRtgs), 65, isBold: true),
+                    _cell(formatNumWithZero(totAuto), 65, isBold: true),
+                    _cell(formatNumWithZero(totCredit), 65, isBold: true),
+                    _cell('', 95, isBold: true),
+                    _cell('', 110, isBold: true, isLast: true),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -542,10 +734,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _th2(String title, {bool rowspan = false}) {
+  Widget _buildStandaloneTh(String title, double width, {bool isLast = false}) {
+    const borderColor = Color(0xFF1F2F8F);
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      width: width,
+      height: 56,
       alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        border: Border(
+          right: isLast ? BorderSide.none : const BorderSide(color: borderColor, width: 1.2),
+        ),
+      ),
       child: Text(
         title,
         textAlign: TextAlign.center,
@@ -559,26 +759,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _thGroup(String title) {
+  Widget _buildSubTh(String title, double width, {bool isLast = false}) {
+    const borderColor = Color(0xFF1F2F8F);
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+      width: width,
+      height: 28,
       alignment: Alignment.center,
-      child: Text(
-        title,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.mukta(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: const Color(0xFF14243A),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        border: Border(
+          right: isLast ? BorderSide.none : const BorderSide(color: borderColor, width: 1.2),
         ),
       ),
-    );
-  }
-
-  Widget _thSub(String title) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-      alignment: Alignment.center,
       child: Text(
         title,
         textAlign: TextAlign.center,
@@ -591,36 +783,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _td(String text, {TextAlign align = TextAlign.right}) {
+  Widget _cell(String text, double width, {TextAlign align = TextAlign.right, bool isBold = false, bool isLast = false}) {
+    const borderColor = Color(0xFF1F2F8F);
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 6),
+      width: width,
+      constraints: const BoxConstraints(minHeight: 34),
+      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 5),
       alignment: align == TextAlign.center
           ? Alignment.center
           : (align == TextAlign.left ? Alignment.centerLeft : Alignment.centerRight),
-      child: Text(
-        text,
-        textAlign: align,
-        style: GoogleFonts.mukta(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: const Color(0xFF14243A),
+      decoration: BoxDecoration(
+        border: Border(
+          right: isLast ? BorderSide.none : const BorderSide(color: borderColor, width: 1.2),
         ),
       ),
-    );
-  }
-
-  Widget _tdBold(String text, {TextAlign align = TextAlign.right}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-      alignment: align == TextAlign.center
-          ? Alignment.center
-          : (align == TextAlign.left ? Alignment.centerLeft : Alignment.centerRight),
       child: Text(
         text,
         textAlign: align,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: GoogleFonts.mukta(
           fontSize: 12,
-          fontWeight: FontWeight.w800,
+          fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
           color: const Color(0xFF14243A),
         ),
       ),
@@ -664,6 +848,102 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ],
           ),
           const SizedBox(height: 12),
+          // Bulk Selection Action Bar (appears when entries are selected or long-pressed)
+          if (_isSelectionMode) ...[
+            Container(
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF), // Soft Indigo/Blue tint
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBFDBFE), width: 1.5),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: 330,
+                  child: Row(
+                    children: [
+                      // Selected count pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.pri,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(
+                          '${_selectedEntryIds.length} Selected',
+                          style: GoogleFonts.mukta(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Select All / Deselect All Button
+                      InkWell(
+                        onTap: () => _selectAllEntries(filteredForEdit),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _selectedEntryIds.length == filteredForEdit.length ? Icons.deselect : Icons.select_all,
+                                size: 16,
+                                color: AppColors.pri,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                _selectedEntryIds.length == filteredForEdit.length ? 'Deselect' : 'Select All',
+                                style: GoogleFonts.mukta(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.pri),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const Spacer(),
+
+                      // Delete Selected Button (Clean, single-line pill button)
+                      SizedBox(
+                        height: 32,
+                        child: ElevatedButton.icon(
+                          onPressed: _isBulkDeleting ? null : _deleteSelectedEntries,
+                          icon: _isBulkDeleting
+                              ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.delete_outline, size: 16, color: Colors.white),
+                          label: Text(
+                            'Delete',
+                            style: GoogleFonts.mukta(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFDC2626),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+
+                      // Close selection mode
+                      InkWell(
+                        onTap: _clearSelection,
+                        borderRadius: BorderRadius.circular(20),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(Icons.close, size: 18, color: Color(0xFF64748B)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
           Text(
             'Find entry by date',
             style: GoogleFonts.mukta(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mut),
@@ -683,6 +963,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     );
                     if (picked != null) {
                       setState(() => _searchByDate = picked);
+                      _loadEntries(); // triggers GET /api/entries API call with that date
                     }
                   },
                   child: Container(
@@ -698,7 +979,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          _searchByDate != null ? dateLabel(_searchByDate!) : 'mm/dd/yyyy',
+                          _searchByDate != null ? dateLabel(_searchByDate!) : 'dd/mm/yyyy',
                           style: GoogleFonts.mukta(
                             fontSize: 14,
                             color: _searchByDate != null ? AppColors.ink : AppColors.mut,
@@ -712,7 +993,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(width: 10),
               OutlinedButton(
-                onPressed: () => setState(() => _searchByDate = null),
+                onPressed: () {
+                  setState(() => _searchByDate = null);
+                  _loadEntries();
+                },
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(80, 48),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -774,85 +1058,461 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
           ...filteredForEdit.map((e) {
-            final id = e['id'];
+            final id = e['id'].toString();
+            final isSelected = _selectedEntryIds.contains(id);
             final dateStr = formatDate((e['entry_date'] ?? '').toString());
             final sales = formatNumWithZero(e['daily_sales']);
             final closing = formatNumWithZero(e['closing_stock']);
             final sm = e['salesman_name'] != null ? '${e['salesman_name']} · ' : '';
 
-            return Container(
-              padding: const EdgeInsets.symmetric(vertical: 11),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppColors.line)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          dateStr,
-                          style: GoogleFonts.mukta(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.ink),
-                        ),
-                        Text(
-                          '$sm Sales $sales · Closing $closing',
-                          style: GoogleFonts.mukta(fontSize: 13, color: AppColors.mut),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      OutlinedButton(
-                        onPressed: () => _startEditing(e),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(60, 36),
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                        ),
-                        child: const Text('Edit'),
+            return InkWell(
+              onLongPress: () {
+                _toggleSelectEntry(id);
+              },
+              onTap: () {
+                if (_isSelectionMode) {
+                  _toggleSelectEntry(id);
+                }
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                margin: const EdgeInsets.symmetric(vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFFEFF6FF) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  border: isSelected
+                      ? Border.all(color: const Color(0xFF3B82F6), width: 1.5)
+                      : const Border(bottom: BorderSide(color: AppColors.line)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Checkbox or Selection Indicator (like photo gallery selection)
+                    if (_isSelectionMode) ...[
+                      Checkbox(
+                        value: isSelected,
+                        activeColor: const Color(0xFF2563EB),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        onChanged: (val) {
+                          _toggleSelectEntry(id);
+                        },
                       ),
-                      const SizedBox(width: 8),
-                      if (_confirmDeleteId == id) ...[
-                        ElevatedButton(
-                          onPressed: () => _deleteEntry(id),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.bad,
-                            minimumSize: const Size(70, 36),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                      const SizedBox(width: 4),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            dateStr,
+                            style: GoogleFonts.mukta(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.ink),
                           ),
-                          child: const Text('Confirm', style: TextStyle(color: Colors.white, fontSize: 13)),
-                        ),
-                        const SizedBox(width: 6),
-                        OutlinedButton(
-                          onPressed: () => setState(() => _confirmDeleteId = null),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(60, 36),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          Text(
+                            '$sm Sales $sales · Closing $closing',
+                            style: GoogleFonts.mukta(fontSize: 13, color: AppColors.mut),
                           ),
-                          child: const Text('Cancel', style: TextStyle(fontSize: 13)),
-                        ),
-                      ] else ...[
+                        ],
+                      ),
+                    ),
+                    Row(
+                      children: [
                         OutlinedButton(
-                          onPressed: () => setState(() => _confirmDeleteId = id),
+                          onPressed: () => _startEditing(e),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.bad,
                             minimumSize: const Size(60, 36),
                             padding: const EdgeInsets.symmetric(horizontal: 10),
                           ),
-                          child: const Text('Delete'),
+                          child: const Text('Edit'),
                         ),
                       ],
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             );
           }),
         ],
       ),
     );
+  }
+
+  Widget _buildExportActionsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromRGBO(20, 23, 58, 0.04),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Title with left accent bar
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4338CA),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Preview, print or download',
+                style: GoogleFonts.sora(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 1. Full-width Preview Button
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: OutlinedButton(
+              onPressed: _handlePdfPreview,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF1E293B),
+                backgroundColor: Colors.white,
+                side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(
+                'Preview',
+                style: GoogleFonts.mukta(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 2. Row with Print and Download PDF buttons
+          Row(
+            children: [
+              // Print Button (Outlined)
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: OutlinedButton(
+                    onPressed: _handlePdfPrint,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1E293B),
+                      backgroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      'Print',
+                      style: GoogleFonts.mukta(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+
+              // Download PDF Button (Filled Gradient / Brand Blue)
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: ElevatedButton(
+                    onPressed: _handlePdfDownload,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4338CA),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Download PDF',
+                        maxLines: 1,
+                        style: GoogleFonts.mukta(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Caption
+          Text(
+            'Print and PDF contain only the entries shown above.',
+            style: GoogleFonts.mukta(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  (String?, String?) _getActiveDateRange() {
+    String? startDate;
+    String? endDate;
+    if (_searchByDate != null) {
+      final s = dateISO(_searchByDate!);
+      startDate = s;
+      endDate = s;
+    } else if (_selectedFilter == 'Today') {
+      startDate = todayISO();
+      endDate = todayISO();
+    } else if (_selectedFilter == 'Week') {
+      final range = thisWeekRange();
+      startDate = dateISO(range.start);
+      endDate = dateISO(range.end);
+    } else if (_selectedFilter == 'Month') {
+      final range = thisMonthRange();
+      startDate = dateISO(range.start);
+      endDate = dateISO(range.end);
+    } else if (_selectedFilter == 'Year') {
+      final range = thisYearRange();
+      startDate = dateISO(range.start);
+      endDate = dateISO(range.end);
+    } else if (_selectedFilter == 'Custom') {
+      if (_customStartDate != null) startDate = dateISO(_customStartDate!);
+      if (_customEndDate != null) endDate = dateISO(_customEndDate!);
+    }
+    return (startDate, endDate);
+  }
+
+  void _handlePdfPreview() {
+    if (_entries.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No entries in this selection to preview')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(12),
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 1040, maxHeight: 700),
+            decoration: BoxDecoration(
+              color: AppColors.bg,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color.fromRGBO(0, 0, 0, 0.3),
+                  blurRadius: 24,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                // Top Header Toolbar matching Demo (#pv .pvt)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color.fromRGBO(20, 23, 58, 0.08),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Preview',
+                        style: GoogleFonts.sora(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                      const Spacer(),
+                      // Close button
+                      OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF475569),
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: const Size(0, 34),
+                        ),
+                        child: const Text('Close'),
+                      ),
+                      const SizedBox(width: 8),
+                      // Print button
+                      OutlinedButton(
+                        onPressed: () {
+                          _handlePdfPrint();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF475569),
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: const Size(0, 34),
+                        ),
+                        child: const Text('Print'),
+                      ),
+                      const SizedBox(width: 8),
+                      // Download PDF button
+                      ElevatedButton(
+                        onPressed: () {
+                          _handlePdfDownload();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4338CA),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: const Size(0, 34),
+                        ),
+                        child: const Text('Download PDF'),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Body Paper Card matching Demo (#pv .pvb .paper)
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color.fromRGBO(0, 0, 0, 0.15),
+                              blurRadius: 16,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'SSRSM Register ($_selectedBrand)',
+                              style: GoogleFonts.sora(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _getRegisterDateSubtitle(),
+                              style: GoogleFonts.mukta(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildTableCard(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handlePdfDownload() async {
+    final (startDate, endDate) = _getActiveDateRange();
+    final url = await ApiService.getPdfUrl(
+      productId: _selectedBrand,
+      productName: _selectedBrand,
+      startDate: startDate,
+      endDate: endDate,
+      download: true,
+    );
+
+    if (kIsWeb) {
+      downloadWebPdf(url, 'SSRSM_Register_$_selectedBrand.pdf');
+    } else {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch: $url')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handlePdfPrint() async {
+    final (startDate, endDate) = _getActiveDateRange();
+    final url = await ApiService.getPdfUrl(
+      productId: _selectedBrand,
+      productName: _selectedBrand,
+      startDate: startDate,
+      endDate: endDate,
+      download: false,
+    );
+
+    if (kIsWeb) {
+      // In web browser, opening the PDF in a new tab allows direct viewing and Ctrl+P / native print
+      openWebUrl(url);
+    } else {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch: $url')),
+        );
+      }
+    }
   }
 
   Widget _buildEditField(String label, TextEditingController ctrl, {bool isNumber = true}) {

@@ -20,7 +20,7 @@ class _SalesmenScreenState extends State<SalesmenScreen> {
   String? _editingId;
   String? _confirmDeleteId;
 
-  final List<String> _brands = ['Dettol', 'Dabur', 'Diaper'];
+  final List<String> _brands = ['Dettol', 'Dabur', 'Diaper', 'Wholesale'];
 
   @override
   void initState() {
@@ -50,17 +50,24 @@ class _SalesmenScreenState extends State<SalesmenScreen> {
       return;
     }
 
-    final res = await ApiService.addSalesman(name, _selectedBrand);
-    if (res != null) {
+    final (ok, errorMsg) = await ApiService.addSalesman(name, _selectedBrand);
+    if (ok) {
       _newSalesmanCtrl.clear();
       _loadSalesmen();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sales man added to $_selectedBrand')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sales man added to $_selectedBrand')),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to add sales man')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg ?? 'Failed to add sales man'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
     }
   }
 
@@ -124,7 +131,7 @@ class _SalesmenScreenState extends State<SalesmenScreen> {
 
   Widget _buildHeaderBanner() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF0E7490), Color(0xFF06B6D4)],
@@ -143,27 +150,32 @@ class _SalesmenScreenState extends State<SalesmenScreen> {
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.people, color: Colors.white, size: 24),
+            child: const Icon(Icons.people, color: Colors.white, size: 22),
           ),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Sales man',
-                style: GoogleFonts.sora(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
-              ),
-              Text(
-                'Add and manage salesmen for each brand',
-                style: GoogleFonts.mukta(fontSize: 13, color: Colors.white.withOpacity(0.9)),
-              ),
-            ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Sales man',
+                  style: GoogleFonts.sora(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
+                ),
+                Text(
+                  'Add and manage salesmen for each brand',
+                  style: GoogleFonts.mukta(fontSize: 12, color: Colors.white.withOpacity(0.9), height: 1.1),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -259,13 +271,28 @@ class _SalesmenScreenState extends State<SalesmenScreen> {
 
     if (_salesmen.isEmpty) {
       return Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(18)),
-        child: Text('$_selectedBrand me abhi koi sales man nahi hai.', style: GoogleFonts.mukta(color: AppColors.mut)),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromRGBO(20, 23, 58, 0.07),
+              blurRadius: 22,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Text(
+          '$_selectedBrand me abhi koi sales man nahi hai.',
+          style: GoogleFonts.mukta(color: AppColors.mut, fontSize: 14),
+        ),
       );
     }
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.card,
