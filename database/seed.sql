@@ -6,7 +6,7 @@ INSERT INTO users (users_username, users_email, users_password_hash, users_role)
 VALUES (
     'admin',
     'admin@ssrsm.local',
-    '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW',
+    '$2b$10$arAhCbYDlgyNVmGFnLU9vu1OSCrW/oYkDOg.1EvjnzzLqIlXQQhZG',
     'admin'
 )
 ON CONFLICT (users_username) DO NOTHING;
