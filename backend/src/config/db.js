@@ -1,30 +1,44 @@
 import pg from 'pg';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { env } from './env.js';
+import { logger } from './logger.js';
 
 const { Pool } = pg;
 
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT,
-});
-
-pool.on('connect', () => {
-  console.log(' Connected to PostgreSQL Database: ' + process.env.DB_NAME);
+export const pool = new Pool({
+  host: env.db.host,
+  port: env.db.port,
+  user: env.db.user,
+  password: env.db.password,
+  database: env.db.database,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+  ...(env.db.ssl ? { ssl: { rejectUnauthorized: false } } : {}),
 });
 
 pool.on('error', (err) => {
-  console.error(' Unexpected error on idle PostgreSQL client', err);
-  process.exit(-1);
+  logger.error({ err }, 'Unexpected error on idle PostgreSQL client');
 });
 
-  export const query = (text, params) => pool.query(text, params);
-  export { pool };
-  export default {
-    query,
-    pool,
-  };
+export const query = (text, params) => pool.query(text, params);
+
+export const withTransaction = async (fn) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
+export default {
+  query,
+  pool,
+  withTransaction,
+};

@@ -20,6 +20,13 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _handleLogin() async {
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
@@ -48,6 +55,179 @@ class _LoginScreenState extends State<LoginScreen> {
         _errorMessage = 'Wrong username or password';
       });
     }
+  }
+
+  Future<void> _showForgotPasswordDialog() async {
+    final tokenCtrl = TextEditingController();
+    final newPasswordCtrl = TextEditingController();
+    final confirmPasswordCtrl = TextEditingController();
+    String? targetEmail = await ApiService.getResetTargetEmail();
+    if (!mounted) return;
+
+    int step = 1;
+    bool submitting = false;
+    String? dialogError;
+    String? infoMessage;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: !submitting,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text(
+                step == 1 ? 'Forgot Password' : 'Reset Password',
+                style: GoogleFonts.sora(fontWeight: FontWeight.w700, fontSize: 18),
+              ),
+              content: SizedBox(
+                width: 340,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (step == 1) ...[
+                      Text(
+                        targetEmail != null && targetEmail!.isNotEmpty
+                            ? 'A 6-digit password reset code will be sent to:\n$targetEmail'
+                            : 'Tap Send Code to receive a 6-digit password reset code on your configured recovery email.',
+                        style: GoogleFonts.mukta(fontSize: 14, color: AppColors.ink),
+                      ),
+                    ] else ...[
+                      if (infoMessage != null) ...[
+                        Text(
+                          infoMessage!,
+                          style: GoogleFonts.mukta(fontSize: 13, color: AppColors.pri, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      TextField(
+                        controller: tokenCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: '6-Digit Reset Code',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: newPasswordCtrl,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: 'New Password',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: confirmPasswordCtrl,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: 'Confirm Password',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
+                    if (dialogError != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        dialogError!,
+                        style: GoogleFonts.mukta(fontSize: 13, color: AppColors.bad, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: submitting ? null : () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: submitting
+                      ? null
+                      : () async {
+                          setDialogState(() {
+                            submitting = true;
+                            dialogError = null;
+                          });
+
+                          if (step == 1) {
+                            final (ok, msg, email, devToken) = await ApiService.forgotPassword();
+                            if (!dialogContext.mounted) return;
+                            if (ok) {
+                              if (email != null && email.isNotEmpty) {
+                                targetEmail = email;
+                              }
+                              if (devToken != null && devToken.isNotEmpty) {
+                                tokenCtrl.text = devToken;
+                              }
+                              setDialogState(() {
+                                submitting = false;
+                                step = 2;
+                                infoMessage = devToken != null
+                                    ? 'Local dev code pre-filled. Enter your new password.'
+                                    : msg;
+                              });
+                            } else {
+                              setDialogState(() {
+                                submitting = false;
+                                dialogError = msg;
+                              });
+                            }
+                          } else {
+                            final token = tokenCtrl.text.trim();
+                            final pass = newPasswordCtrl.text;
+                            final confirm = confirmPasswordCtrl.text;
+                            if (token.isEmpty || pass.length < 6) {
+                              setDialogState(() {
+                                submitting = false;
+                                dialogError = 'Valid 6-digit code and password (min 6 chars) required';
+                              });
+                              return;
+                            }
+                            if (pass != confirm) {
+                              setDialogState(() {
+                                submitting = false;
+                                dialogError = 'Passwords do not match';
+                              });
+                              return;
+                            }
+                            final (ok, msg) = await ApiService.resetPassword(
+                              token: token,
+                              newPassword: pass,
+                            );
+                            if (!dialogContext.mounted) return;
+                            if (ok) {
+                              Navigator.of(dialogContext).pop();
+                              if (mounted) {
+                                ScaffoldMessenger.of(this.context).showSnackBar(
+                                  SnackBar(content: Text(msg)),
+                                );
+                              }
+                            } else {
+                              setDialogState(() {
+                                submitting = false;
+                                dialogError = msg;
+                              });
+                            }
+                          }
+                        },
+                  child: submitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(step == 1 ? 'Send Code' : 'Reset Password'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -179,7 +359,27 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ),
                                     ),
                                   ],
-                                  const SizedBox(height: 22),
+                                  const SizedBox(height: 8),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton(
+                                      onPressed: _isLoading ? null : _showForgotPasswordDialog,
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: Text(
+                                        'Forgot password?',
+                                        style: GoogleFonts.mukta(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.pri,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
                                   SizedBox(
                                     width: double.infinity,
                                     height: 50,
@@ -262,9 +462,9 @@ class _LoginScreenState extends State<LoginScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 22),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withOpacity(0.45), // Sleek deep slate backdrop
+        color: const Color(0xFF0F172A).withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.35), width: 1.5),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.5),
         boxShadow: const [
           BoxShadow(
             color: Color.fromRGBO(0, 0, 0, 0.25),

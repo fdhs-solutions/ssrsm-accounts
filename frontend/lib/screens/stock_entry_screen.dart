@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/helpers.dart';
+import '../widgets/widgets.dart';
 
 class StockEntryScreen extends StatefulWidget {
   final VoidCallback onSaved;
@@ -44,13 +44,27 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
   String? _selectedSalesmanId;
   bool _isLoading = false;
 
-  final List<String> _products = ['Dettol', 'Dabur', 'Diaper', 'Wholesale'];
-  final List<String> _modes = ['Cash', 'Cheque', 'RTGS', 'Auto', 'Credit'];
+  static const List<String> _products = ['Dettol', 'Dabur', 'Diaper', 'Wholesale'];
+  static const List<String> _modes = ['Cash', 'Cheque', 'RTGS', 'Auto', 'Credit'];
 
   @override
   void initState() {
     super.initState();
     _loadSalesmenAndOpeningStock();
+  }
+
+  @override
+  void dispose() {
+    _openingStockCtrl.dispose();
+    _dailySalesCtrl.dispose();
+    _stockReceivedCtrl.dispose();
+    _newStockCtrl.dispose();
+    _closingStockCtrl.dispose();
+    _noteCtrl.dispose();
+    for (final c in _modeControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _loadSalesmenAndOpeningStock() async {
@@ -67,20 +81,15 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
 
           final sameDay = info['sameDayEntry'];
           if (sameDay != null) {
-            // Same date entry exists: Auto-fill stock figures
-            final open = sameDay['openingStock'] ?? 0;
-            final nw = sameDay['newStock'] ?? 0;
-            final sales = sameDay['dailySales'] ?? 0;
-            final received = sameDay['stockReceived'] ?? 0;
-
-            _openingStockCtrl.text = formatNum(open);
-            _newStockCtrl.text = formatNum(nw);
-            _dailySalesCtrl.text = formatNum(sales);
-            _stockReceivedCtrl.text = formatNum(received);
+            _openingStockCtrl.text = formatNum(sameDay['openingStock'] ?? 0);
+            _newStockCtrl.text = formatNum(sameDay['newStock'] ?? 0);
+            _dailySalesCtrl.text = formatNum(sameDay['dailySales'] ?? 0);
+            _stockReceivedCtrl.text = formatNum(sameDay['stockReceived'] ?? 0);
           } else {
-            // First entry for this date: Get previous day's closing stock or 0
             final opening = info['openingStock'] as double? ?? 0.0;
-            _openingStockCtrl.text = opening > 0 ? (opening % 1 == 0 ? opening.toInt().toString() : opening.toString()) : '';
+            _openingStockCtrl.text = opening > 0
+                ? (opening % 1 == 0 ? opening.toInt().toString() : opening.toString())
+                : '';
           }
           _recalculateClosing();
         });
@@ -99,9 +108,9 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
     final double sales = _parseCleanNum(_dailySalesCtrl.text);
     final double received = _parseCleanNum(_stockReceivedCtrl.text);
 
-    // Formula: Closing = Opening + New - Daily Sales + Stock Received
     final double closing = open + nw - sales + received;
-    final formattedClosing = closing % 1 == 0 ? closing.toInt().toString() : closing.toStringAsFixed(2);
+    final formattedClosing =
+        closing % 1 == 0 ? closing.toInt().toString() : closing.toStringAsFixed(2);
     _closingStockCtrl.text = formatIndianNumber(formattedClosing);
   }
 
@@ -112,9 +121,7 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
     final double received = _parseCleanNum(_stockReceivedCtrl.text);
 
     if (sales > (open + nw + received)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Daily sales cannot exceed available stock')),
-      );
+      showAppSnackBar(context, 'Daily sales cannot exceed available stock', isError: true);
       return;
     }
 
@@ -142,10 +149,7 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
     setState(() => _isLoading = false);
 
     if (res != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Stock entry saved successfully!')),
-      );
-      // Clear form
+      showAppSnackBar(context, 'Stock entry saved successfully!');
       _dailySalesCtrl.clear();
       _stockReceivedCtrl.clear();
       _newStockCtrl.clear();
@@ -154,9 +158,7 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
       _recalculateClosing();
       widget.onSaved();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save entry. Check values.')),
-      );
+      showAppSnackBar(context, 'Failed to save entry. Check values.', isError: true);
     }
   }
 
@@ -173,51 +175,25 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeaderBanner(),
+                  const AppHeaderBanner(
+                    title: 'New stock entry',
+                    subtitle: 'Add daily sales, stock received & collections',
+                    icon: Icons.add_shopping_cart,
+                    gradientColors: [Color(0xFF4338CA), Color(0xFF6366F1)],
+                  ),
                   const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: AppColors.card,
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color.fromRGBO(20, 23, 58, 0.07),
-                          blurRadius: 22,
-                          offset: Offset(0, 8),
-                        ),
-                      ],
-                    ),
+                  AppCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildLabel('Product'),
-                        Wrap(
-                          spacing: 16,
-                          children: _products.map((p) {
-                            return Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Radio<String>(
-                                  value: p,
-                                  groupValue: _selectedProduct,
-                                  activeColor: AppColors.pri,
-                                  onChanged: (val) {
-                                    setState(() => _selectedProduct = val!);
-                                    _loadSalesmenAndOpeningStock();
-                                  },
-                                ),
-                                Text(
-                                  p,
-                                  style: GoogleFonts.mukta(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.ink,
-                                  ),
-                                ),
-                              ],
-                            );
-                          }).toList(),
+                        ProductRadioSelector(
+                          options: _products,
+                          selectedValue: _selectedProduct,
+                          onChanged: (val) {
+                            setState(() => _selectedProduct = val);
+                            _loadSalesmenAndOpeningStock();
+                          },
                         ),
                         const SizedBox(height: 12),
                         _buildLabel('Date'),
@@ -333,53 +309,17 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
                         TextField(
                           controller: _noteCtrl,
                           maxLines: 4,
-                          decoration: InputDecoration(
+                          decoration: appInputDecoration(
                             hintText: 'Enter notes here...',
-                            filled: true,
-                            fillColor: AppColors.card,
                             contentPadding: const EdgeInsets.all(14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(color: AppColors.line, width: 1.5),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(color: AppColors.line, width: 1.5),
-                            ),
                           ),
                         ),
                         const SizedBox(height: 22),
-                        SizedBox(
-                          width: double.infinity,
+                        AppGradientButton(
+                          label: 'Save entry',
                           height: 52,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _saveEntry,
-                            style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              elevation: 4,
-                              shadowColor: const Color.fromRGBO(79, 70, 229, 0.35),
-                            ),
-                            child: Ink(
-                              decoration: BoxDecoration(
-                                gradient: AppColors.buttonGradient,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Container(
-                                alignment: Alignment.center,
-                                child: _isLoading
-                                    ? const CircularProgressIndicator(color: Colors.white)
-                                    : Text(
-                                        'Save entry',
-                                        style: GoogleFonts.mukta(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                          ),
+                          isLoading: _isLoading,
+                          onPressed: _saveEntry,
                         ),
                       ],
                     ),
@@ -393,70 +333,20 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
     );
   }
 
-  Widget _buildHeaderBanner() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4338CA), Color(0xFF6366F1)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(20, 23, 58, 0.18),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.add_shopping_cart, color: Colors.white, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'New stock entry',
-                  style: GoogleFonts.sora(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
-                ),
-                Text(
-                  'Add daily sales, stock received & collections',
-                  style: GoogleFonts.mukta(fontSize: 12, color: Colors.white.withOpacity(0.9), height: 1.1),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        text,
-        style: GoogleFonts.mukta(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mut),
-      ),
+      child: AppFieldLabel(text),
     );
   }
 
-  Widget _buildInput(String label, TextEditingController ctrl, String hint, {bool isNumber = false, bool readOnly = false}) {
+  Widget _buildInput(
+    String label,
+    TextEditingController ctrl,
+    String hint, {
+    bool isNumber = false,
+    bool readOnly = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -466,24 +356,13 @@ class _StockEntryScreenState extends State<StockEntryScreen> {
           TextField(
             controller: ctrl,
             readOnly: readOnly,
-            keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-            inputFormatters: isNumber
-                ? [IndianNumberTextInputFormatter()]
-                : null,
+            keyboardType: isNumber
+                ? const TextInputType.numberWithOptions(decimal: true)
+                : TextInputType.text,
+            inputFormatters: isNumber ? [IndianNumberTextInputFormatter()] : null,
             onChanged: (_) => _recalculateClosing(),
-            decoration: InputDecoration(
-              hintText: hint,
-              filled: true,
+            decoration: appInputDecoration(hintText: hint).copyWith(
               fillColor: readOnly ? AppColors.tint : AppColors.card,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: AppColors.line, width: 1.5),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: AppColors.line, width: 1.5),
-              ),
             ),
           ),
         ],

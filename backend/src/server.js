@@ -1,42 +1,63 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import db from './config/db.js';
-import apiRoutes from './routes/api.js';
-import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
+import { createApp } from './app.js';
+import { env } from './config/env.js';
+import { pool } from './config/db.js';
+import { logger } from './config/logger.js';
 
-dotenv.config();
+const app = createApp();
+let server;
+let isShuttingDown = false;
 
-const app = express();
-
-// Middlewares
-app.use(cors());
-app.use(express.json());
-
-// API Routes
-app.use('/api', apiRoutes);
-
-// Health check API
-app.get('/api/health', async (req, res) => {
+async function startServer() {
   try {
-    const result = await db.query('SELECT NOW()');
-    res.json({
-      status: 'OK',
-      message: 'SSRSM Accounts Backend is running smoothly!',
-      db_time: result.rows[0].now,
+    await pool.query('SELECT 1');
+    logger.info({ database: env.db.database }, 'Connected to PostgreSQL');
+
+    server = app.listen(env.port, () => {
+      logger.info({ port: env.port, env: env.nodeEnv }, `Server running on http://localhost:${env.port}`);
     });
-  } catch (error) {
-    res.status(500).json({ status: 'ERROR', error: error.message });
+  } catch (err) {
+    logger.fatal({ err }, 'Failed to start server');
+    process.exit(1);
   }
+}
+
+async function gracefulShutdown(signal, exitCode = 0) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  logger.info({ signal }, 'Graceful shutdown initiated');
+
+  const forceExitTimer = setTimeout(() => {
+    logger.error('Graceful shutdown timed out; forcing exit');
+    process.exit(1);
+  }, 10000);
+  forceExitTimer.unref();
+
+  try {
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+      logger.info('HTTP server closed');
+    }
+    await pool.end();
+    logger.info('PostgreSQL pool closed');
+    process.exit(exitCode);
+  } catch (err) {
+    logger.error({ err }, 'Error during graceful shutdown');
+    process.exit(1);
+  }
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT', 0));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM', 0));
+
+process.on('unhandledRejection', (reason) => {
+  logger.error({ err: reason }, 'Unhandled Promise Rejection');
+  gracefulShutdown('unhandledRejection', 1);
 });
 
-// 404 handler for unknown routes
-app.use(notFoundHandler);
-
-// Global Error Handler Middleware (Catches all next(err) & unhandled errors)
-app.use(errorHandler);
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, 'Uncaught Exception');
+  gracefulShutdown('uncaughtException', 1);
 });
+
+startServer();

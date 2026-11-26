@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/helpers.dart';
+import '../widgets/widgets.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -368,108 +369,118 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
           const SizedBox(height: 12),
           // Product Radio Selector
-          Wrap(
-            spacing: 14,
-            children: _products.map((prod) {
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Radio<String>(
-                    value: prod,
-                    groupValue: _selectedProduct,
-                    activeColor: AppColors.pri,
-                    onChanged: (val) {
-                      setState(() => _selectedProduct = val!);
-                      _loadDashboard();
-                    },
-                  ),
-                  Text(
-                    prod,
-                    style: GoogleFonts.mukta(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.ink,
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
+          ProductRadioSelector(
+            options: _products,
+            selectedValue: _selectedProduct,
+            onChanged: (val) {
+              setState(() => _selectedProduct = val);
+              _loadDashboard();
+            },
           ),
           const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Header with Title & Date range above the chart (like Register page)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Stock chart · $_selectedProduct',
-                style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700),
+                style: GoogleFonts.sora(fontSize: 17, fontWeight: FontWeight.w700),
               ),
+              const SizedBox(height: 2),
               Text(
                 _getChartPeriodSubtitle(),
-                style: GoogleFonts.mukta(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mut),
+                style: GoogleFonts.mukta(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.mut,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          // Bar Chart with 5 bars (Stock Received instead of Return Stock)
-          SizedBox(
-            height: 190,
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _buildBarCol('Opening stock', openStock, maxVal, AppColors.pri),
-                      _buildBarCol('New stock', newStock, maxVal, AppColors.autoColor),
-                      _buildBarCol('Daily sales', sales, maxVal, AppColors.acc),
-                      _buildBarCol('Stock Received', stockReceived, maxVal, AppColors.ok),
-                      _buildBarCol('Total closing stock', closingStock, maxVal, AppColors.ink),
-                    ],
+          // Scrollable Bar Chart with fixed bar height and equal baseline
+          _isLoading
+              ? const SizedBox(
+                  height: 200,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _buildBarCol('Opening\nstock', openStock, maxVal, AppColors.pri),
+                        _buildBarCol('New\nstock', newStock, maxVal, AppColors.autoColor),
+                        _buildBarCol('Daily\nsales', sales, maxVal, AppColors.acc),
+                        _buildBarCol('Stock\nReceived', stockReceived, maxVal, AppColors.ok),
+                        _buildBarCol('Total closing\nstock', closingStock, maxVal, AppColors.ink),
+                      ],
+                    ),
                   ),
-          ),
+                ),
         ],
       ),
     );
   }
 
   Widget _buildBarCol(String label, double val, double maxVal, Color color) {
-    final double pct = maxVal > 0 ? (val / maxVal).clamp(0.04, 1.0) : 0.04;
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text(
+    const double maxBarHeight = 120.0;
+    // Calculate exact height so all bars sit on the EXACT SAME bottom baseline
+    final double barHeight = maxVal > 0 ? (val / maxVal).clamp(0.04, 1.0) * maxBarHeight : 5.0;
+
+    return Container(
+      width: 78,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Amount text on top of bar (SingleChildScrollView prevents ellipsis truncation like 500...)
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
               formatNumWithZero(val),
-              style: GoogleFonts.sora(fontSize: 12, fontWeight: FontWeight.w700),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.sora(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.ink),
             ),
-            const SizedBox(height: 4),
-            Expanded(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: FractionallySizedBox(
-                  heightFactor: pct,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                    ),
-                  ),
+          ),
+          const SizedBox(height: 6),
+          // Bar container with fixed height canvas to guarantee equal baseline
+          SizedBox(
+            height: maxBarHeight,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                width: 44,
+                height: barHeight,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                 ),
               ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.mukta(fontSize: 11, color: AppColors.mut, height: 1.1),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+          ),
+          // Common horizontal baseline line
+          Container(
+            height: 2,
+            width: double.infinity,
+            color: const Color(0xFFCBD5E1),
+          ),
+          const SizedBox(height: 6),
+          // Column label below baseline
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.mukta(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.mut,
+              height: 1.15,
             ),
-          ],
-        ),
+            maxLines: 2,
+          ),
+        ],
       ),
     );
   }
