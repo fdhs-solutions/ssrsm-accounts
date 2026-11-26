@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../utils/constants.dart';
 import '../utils/helpers.dart';
+import '../widgets/widgets.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -368,32 +369,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
           const SizedBox(height: 12),
           // Product Radio Selector
-          Wrap(
-            spacing: 14,
-            children: _products.map((prod) {
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Radio<String>(
-                    value: prod,
-                    groupValue: _selectedProduct,
-                    activeColor: AppColors.pri,
-                    onChanged: (val) {
-                      setState(() => _selectedProduct = val!);
-                      _loadDashboard();
-                    },
-                  ),
-                  Text(
-                    prod,
-                    style: GoogleFonts.mukta(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.ink,
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
+          ProductRadioSelector(
+            options: _products,
+            selectedValue: _selectedProduct,
+            onChanged: (val) {
+              setState(() => _selectedProduct = val);
+              _loadDashboard();
+            },
           ),
           const SizedBox(height: 10),
           // Header with Title & Date range above the chart (like Register page)

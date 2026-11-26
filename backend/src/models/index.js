@@ -1,3 +1,4 @@
-export { Product } from './Product.js';
-export { Salesman } from './Salesman.js';
-export { DailyStockEntry } from './DailyStockEntry.js';
+export { UserModel } from './user.model.js';
+export { ProductModel } from './product.model.js';
+export { SalesmanModel } from './salesman.model.js';
+export { DailyStockEntryModel } from './daily-stock-entry.model.js';

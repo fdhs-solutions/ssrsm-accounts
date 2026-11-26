@@ -5,14 +5,22 @@ import '../utils/constants.dart';
 class ApiService {
   static String get _base => ApiConfig.baseUrl;
 
-  // Cached products: name -> id and id -> name
+  static String? _authToken;
   static List<Map<String, dynamic>> _cachedProducts = [];
+
+  static Map<String, String> get _authHeaders => {
+        'Content-Type': 'application/json',
+        if (_authToken != null && _authToken!.isNotEmpty)
+          'Authorization': 'Bearer $_authToken',
+      };
 
   static Future<List<Map<String, dynamic>>> getProducts() async {
     if (_cachedProducts.isNotEmpty) return _cachedProducts;
     try {
       final uri = Uri.parse('$_base/products');
-      final res = await http.get(uri).timeout(const Duration(seconds: 10));
+      final res = await http
+          .get(uri, headers: _authHeaders)
+          .timeout(const Duration(seconds: 10));
       final body = json.decode(res.body);
       if (body['success'] == true) {
         _cachedProducts = List<Map<String, dynamic>>.from(body['data'] ?? []);
@@ -31,16 +39,98 @@ class ApiService {
     return matched['id']?.toString();
   }
 
-  // ── Login ──
+  // ── Auth ──
   static Future<bool> login(String username, String password) async {
     try {
-      final uri = Uri.parse(
-          '$_base/login?username=${Uri.encodeComponent(username)}&password=${Uri.encodeComponent(password)}');
-      final res = await http.get(uri).timeout(const Duration(seconds: 10));
+      final uri = Uri.parse('$_base/auth/login');
+      final res = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({'username': username, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 10));
       final body = json.decode(res.body);
-      return body['success'] == true;
+      if (body['success'] == true) {
+        _authToken = body['data']?['token']?.toString();
+        _cachedProducts = [];
+        return true;
+      }
+      return false;
     } catch (e) {
       return false;
+    }
+  }
+
+  static Future<void> logout() async {
+    try {
+      final uri = Uri.parse('$_base/auth/logout');
+      await http.post(uri, headers: _authHeaders).timeout(const Duration(seconds: 5));
+    } catch (_) {}
+    _authToken = null;
+    _cachedProducts = [];
+  }
+
+  static Future<String?> getResetTargetEmail() async {
+    try {
+      final uri = Uri.parse('$_base/auth/reset-target');
+      final res = await http
+          .get(uri, headers: {'Content-Type': 'application/json'})
+          .timeout(const Duration(seconds: 10));
+      final body = json.decode(res.body);
+      if (body['success'] == true) {
+        return body['data']?['email']?.toString();
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<(bool, String, String?, String?)> forgotPassword([String? identifier]) async {
+    try {
+      final uri = Uri.parse('$_base/auth/forgot-password');
+      final res = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode(identifier != null && identifier.isNotEmpty ? {'identifier': identifier} : {}),
+          )
+          .timeout(const Duration(seconds: 25));
+      final body = json.decode(res.body);
+      final ok = body['success'] == true;
+      final msg = body['message']?.toString() ??
+          body['error']?.toString() ??
+          (ok ? 'Reset code sent.' : 'Failed to request password reset');
+      final email = body['data']?['email']?.toString();
+      final devToken = body['data']?['devResetToken']?.toString();
+      return (ok, msg, email, devToken);
+    } catch (_) {
+      return (false, 'Unable to connect to server. Please try again.', null, null);
+    }
+  }
+
+  static Future<(bool, String)> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      final uri = Uri.parse('$_base/auth/reset-password');
+      final res = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({'token': token, 'newPassword': newPassword}),
+          )
+          .timeout(const Duration(seconds: 25));
+      final body = json.decode(res.body);
+      final ok = body['success'] == true;
+      final msg = body['message']?.toString() ??
+          body['error']?.toString() ??
+          (ok ? 'Password reset successful.' : 'Failed to reset password');
+      return (ok, msg);
+    } catch (_) {
+      return (false, 'Unable to connect to server. Please try again.');
     }
   }
 
@@ -57,7 +147,6 @@ class ApiService {
     if (startDate != null) params['startDate'] = startDate;
     if (endDate != null) params['endDate'] = endDate;
 
-    // Resolve real UUID if product name passed
     if (productId != null && productId.isNotEmpty) {
       final isUuid = RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(productId);
       if (!isUuid) {
@@ -76,7 +165,9 @@ class ApiService {
 
     final uri = Uri.parse('$_base/dashboard')
         .replace(queryParameters: params.isNotEmpty ? params : null);
-    final res = await http.get(uri).timeout(const Duration(seconds: 15));
+    final res = await http
+        .get(uri, headers: _authHeaders)
+        .timeout(const Duration(seconds: 15));
     return json.decode(res.body);
   }
 
@@ -101,15 +192,16 @@ class ApiService {
 
     final uri = Uri.parse('$_base/salesmen')
         .replace(queryParameters: params.isNotEmpty ? params : null);
-    final res = await http.get(uri).timeout(const Duration(seconds: 10));
+    final res = await http
+        .get(uri, headers: _authHeaders)
+        .timeout(const Duration(seconds: 10));
     final body = json.decode(res.body);
     return body['success'] == true ? List.from(body['data'] ?? []) : [];
   }
 
-  static Future<(bool, String?)> addSalesman(
-      String name, String productId) async {
+  static Future<(bool, String?)> addSalesman(String name, String productId) async {
     String actualId = productId;
-    String actualName = productId;
+    final String actualName = productId;
     final isUuid = RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(productId);
     if (!isUuid) {
       final realId = await getProductIdByName(productId);
@@ -119,13 +211,15 @@ class ApiService {
     try {
       final uri = Uri.parse('$_base/salesmen');
       final res = await http
-          .post(uri,
-              headers: {'Content-Type': 'application/json'},
-              body: json.encode({
-                'name': name,
-                'productId': actualId,
-                'productName': actualName,
-              }))
+          .post(
+            uri,
+            headers: _authHeaders,
+            body: json.encode({
+              'name': name,
+              'productId': actualId,
+              'productName': actualName,
+            }),
+          )
           .timeout(const Duration(seconds: 10));
       final body = json.decode(res.body);
       if (body['success'] == true) {
@@ -133,21 +227,18 @@ class ApiService {
       } else {
         return (false, body['error']?.toString() ?? 'Failed to add sales man');
       }
-    } catch (e) {
-      return (false, e.toString());
+    } catch (_) {
+      return (false, 'Unable to connect to server. Please try again.');
     }
   }
 
-  static Future<bool> updateSalesman(String id,
-      {String? name, String? productId}) async {
+  static Future<bool> updateSalesman(String id, {String? name, String? productId}) async {
     final uri = Uri.parse('$_base/salesmen/$id');
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (productId != null) data['productId'] = productId;
     final res = await http
-        .put(uri,
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode(data))
+        .put(uri, headers: _authHeaders, body: json.encode(data))
         .timeout(const Duration(seconds: 10));
     final body = json.decode(res.body);
     return body['success'] == true;
@@ -155,13 +246,19 @@ class ApiService {
 
   static Future<bool> deleteSalesman(String id) async {
     final uri = Uri.parse('$_base/salesmen/$id');
-    final res = await http.delete(uri).timeout(const Duration(seconds: 10));
+    final res = await http
+        .delete(uri, headers: _authHeaders)
+        .timeout(const Duration(seconds: 10));
     final body = json.decode(res.body);
     return body['success'] == true;
   }
 
   // ── Stock Entries ──
-  static Future<Map<String, dynamic>> getOpeningStockInfo({required String productId, String? productName, String? date}) async {
+  static Future<Map<String, dynamic>> getOpeningStockInfo({
+    required String productId,
+    String? productName,
+    String? date,
+  }) async {
     try {
       final params = <String, String>{};
       if (date != null) params['date'] = date;
@@ -181,7 +278,9 @@ class ApiService {
       }
 
       final uri = Uri.parse('$_base/entries/opening-stock').replace(queryParameters: params);
-      final res = await http.get(uri).timeout(const Duration(seconds: 10));
+      final res = await http
+          .get(uri, headers: _authHeaders)
+          .timeout(const Duration(seconds: 10));
       final body = json.decode(res.body);
       if (body['success'] == true) {
         return {
@@ -195,8 +294,13 @@ class ApiService {
     }
   }
 
-  static Future<double> getOpeningStock({required String productId, String? productName, String? date}) async {
-    final info = await getOpeningStockInfo(productId: productId, productName: productName, date: date);
+  static Future<double> getOpeningStock({
+    required String productId,
+    String? productName,
+    String? date,
+  }) async {
+    final info = await getOpeningStockInfo(
+        productId: productId, productName: productName, date: date);
     return info['openingStock'] as double;
   }
 
@@ -226,14 +330,14 @@ class ApiService {
     if (endDate != null) params['endDate'] = endDate;
     final uri = Uri.parse('$_base/entries')
         .replace(queryParameters: params.isNotEmpty ? params : null);
-    final res = await http.get(uri).timeout(const Duration(seconds: 10));
+    final res = await http
+        .get(uri, headers: _authHeaders)
+        .timeout(const Duration(seconds: 10));
     final body = json.decode(res.body);
     return body['success'] == true ? List.from(body['data'] ?? []) : [];
   }
 
-  static Future<Map<String, dynamic>?> createEntry(
-      Map<String, dynamic> data) async {
-    // If productId in data is a brand name, resolve to UUID and keep both productId and productName
+  static Future<Map<String, dynamic>?> createEntry(Map<String, dynamic> data) async {
     final pId = data['productId']?.toString() ?? '';
     if (pId.isNotEmpty) {
       final isUuid = RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(pId);
@@ -248,21 +352,16 @@ class ApiService {
 
     final uri = Uri.parse('$_base/entries');
     final res = await http
-        .post(uri,
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode(data))
+        .post(uri, headers: _authHeaders, body: json.encode(data))
         .timeout(const Duration(seconds: 10));
     final body = json.decode(res.body);
     return body['success'] == true ? body['data'] : null;
   }
 
-  static Future<bool> updateEntry(
-      String id, Map<String, dynamic> data) async {
+  static Future<bool> updateEntry(String id, Map<String, dynamic> data) async {
     final uri = Uri.parse('$_base/entries/$id');
     final res = await http
-        .put(uri,
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode(data))
+        .put(uri, headers: _authHeaders, body: json.encode(data))
         .timeout(const Duration(seconds: 10));
     final body = json.decode(res.body);
     return body['success'] == true;
@@ -271,7 +370,9 @@ class ApiService {
   static Future<bool> deleteEntry(String id) async {
     try {
       final uri = Uri.parse('$_base/entries/$id');
-      final res = await http.delete(uri).timeout(const Duration(seconds: 10));
+      final res = await http
+          .delete(uri, headers: _authHeaders)
+          .timeout(const Duration(seconds: 10));
       final body = json.decode(res.body);
       return body['success'] == true;
     } catch (_) {
@@ -279,15 +380,12 @@ class ApiService {
     }
   }
 
-  // Bulk delete in ONE single API call (POST /api/entries/bulk-delete)
   static Future<int> deleteEntriesBulk(List<String> ids) async {
     if (ids.isEmpty) return 0;
     try {
       final uri = Uri.parse('$_base/entries/bulk-delete');
       final res = await http
-          .post(uri,
-              headers: {'Content-Type': 'application/json'},
-              body: json.encode({'ids': ids}))
+          .post(uri, headers: _authHeaders, body: json.encode({'ids': ids}))
           .timeout(const Duration(seconds: 15));
       final body = json.decode(res.body);
       if (body['success'] == true) {
@@ -331,6 +429,9 @@ class ApiService {
     }
     if (download) {
       params['download'] = '1';
+    }
+    if (_authToken != null && _authToken!.isNotEmpty) {
+      params['token'] = _authToken!;
     }
 
     final uri = Uri.parse('$_base/entries/pdf')
