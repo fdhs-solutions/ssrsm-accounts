@@ -18,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
   String? _errorMessage;
 
   @override
@@ -66,6 +67,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     int step = 1;
     bool submitting = false;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
     String? dialogError;
     String? infoMessage;
 
@@ -113,19 +116,27 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 10),
                       TextField(
                         controller: newPasswordCtrl,
-                        obscureText: true,
+                        obscureText: obscureNew,
                         decoration: InputDecoration(
                           labelText: 'New Password',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          suffixIcon: IconButton(
+                            icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility),
+                            onPressed: () => setDialogState(() => obscureNew = !obscureNew),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 10),
                       TextField(
                         controller: confirmPasswordCtrl,
-                        obscureText: true,
+                        obscureText: obscureConfirm,
                         decoration: InputDecoration(
                           labelText: 'Confirm Password',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          suffixIcon: IconButton(
+                            icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                            onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
+                          ),
                         ),
                       ),
                     ],
@@ -328,12 +339,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                   const SizedBox(height: 4),
                                   TextField(
                                     controller: _passwordController,
-                                    obscureText: true,
+                                    obscureText: _obscurePassword,
                                     decoration: InputDecoration(
                                       hintText: 'Enter your password',
                                       filled: true,
                                       fillColor: AppColors.card,
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                          color: AppColors.mut,
+                                        ),
+                                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                      ),
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(14),
                                         borderSide: const BorderSide(color: AppColors.line, width: 1.5),
